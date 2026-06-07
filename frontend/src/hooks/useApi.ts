@@ -1,0 +1,147 @@
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { clientsApi, invoicesApi, paymentsApi, reportsApi, profileApi, downloadInvoicePdf } from '../lib/api';
+import type { ClientPayload, CreateInvoicePayload, PaymentPayload, ProfilePayload } from '../types';
+
+// ─── Query Keys ───────────────────────────────────────────────────────────────
+export const QK = {
+  clients: (params?: any) => ['clients', params],
+  client: (id: string) => ['clients', id],
+  invoices: (params?: any) => ['invoices', params],
+  invoice: (id: string) => ['invoices', id],
+  dashboard: () => ['reports', 'dashboard'],
+  reports: (year?: number) => ['reports', year],
+};
+
+// ─── Clients ──────────────────────────────────────────────────────────────────
+export const useClients = (params?: { page?: number; limit?: number; search?: string; sortBy?: string }) =>
+  useQuery({
+    queryKey: QK.clients(params),
+    queryFn: () => clientsApi.list(params),
+  });
+
+export const useClient = (id: string) =>
+  useQuery({
+    queryKey: QK.client(id),
+    queryFn: () => clientsApi.get(id),
+    enabled: !!id,
+  });
+
+export const useCreateClient = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: ClientPayload) => clientsApi.create(data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['clients'] }),
+  });
+};
+
+export const useUpdateClient = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<ClientPayload> }) => clientsApi.update(id, data),
+    onSuccess: (_, { id }) => {
+      qc.invalidateQueries({ queryKey: ['clients'] });
+      qc.invalidateQueries({ queryKey: QK.client(id) });
+    },
+  });
+};
+
+export const useDeleteClient = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => clientsApi.delete(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['clients'] }),
+  });
+};
+
+// ─── Invoices ─────────────────────────────────────────────────────────────────
+export const useInvoices = (params?: {
+  page?: number; limit?: number; status?: string; clientId?: string; search?: string;
+}) =>
+  useQuery({
+    queryKey: QK.invoices(params),
+    queryFn: () => invoicesApi.list(params),
+  });
+
+export const useInvoice = (id: string) =>
+  useQuery({
+    queryKey: QK.invoice(id),
+    queryFn: () => invoicesApi.get(id),
+    enabled: !!id,
+  });
+
+export const useCreateInvoice = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: CreateInvoicePayload) => invoicesApi.create(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['invoices'] });
+      qc.invalidateQueries({ queryKey: ['reports'] });
+    },
+  });
+};
+
+export const useUpdateInvoice = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) => invoicesApi.update(id, data),
+    onSuccess: (_, { id }) => {
+      qc.invalidateQueries({ queryKey: ['invoices'] });
+      qc.invalidateQueries({ queryKey: QK.invoice(id) });
+      qc.invalidateQueries({ queryKey: ['reports'] });
+    },
+  });
+};
+
+export const useDeleteInvoice = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => invoicesApi.delete(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['invoices'] });
+      qc.invalidateQueries({ queryKey: ['reports'] });
+    },
+  });
+};
+
+export const useSendInvoiceEmail = () =>
+  useMutation({
+    mutationFn: ({ id, message }: { id: string; message?: string }) => invoicesApi.sendEmail(id, message),
+  });
+
+export const useDownloadPdf = () =>
+  useMutation({
+    mutationFn: ({ id, invoiceNumber }: { id: string; invoiceNumber: string }) =>
+      downloadInvoicePdf(id, invoiceNumber),
+  });
+
+// ─── Payments ─────────────────────────────────────────────────────────────────
+export const useRecordPayment = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: PaymentPayload) => paymentsApi.record(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['invoices'] });
+      qc.invalidateQueries({ queryKey: ['reports'] });
+    },
+  });
+};
+
+// ─── Reports ──────────────────────────────────────────────────────────────────
+export const useDashboard = () =>
+  useQuery({
+    queryKey: QK.dashboard(),
+    queryFn: () => reportsApi.dashboard(),
+    staleTime: 30_000,
+  });
+
+export const useReports = (year?: number) =>
+  useQuery({
+    queryKey: QK.reports(year),
+    queryFn: () => reportsApi.reports(year),
+  });
+
+// ─── Profile ──────────────────────────────────────────────────────────────────
+export const useUpdateProfile = () =>
+  useMutation({
+    mutationFn: (data: ProfilePayload) => profileApi.update(data),
+  });
