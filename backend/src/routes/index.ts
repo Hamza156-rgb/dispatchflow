@@ -127,16 +127,15 @@ paymentsRouter.post('/', async (req, res, next) => {
 });
 
 // routes/reports.ts
-import { IRouter as IRRouter } from 'express';
 import { getReports, getDashboard } from '../controllers/reports';
 
-export const reportsRouter = IRRouter();
+export const reportsRouter = IRouter();
 reportsRouter.use(authenticate);
 reportsRouter.get('/', getReports);
 reportsRouter.get('/dashboard', getDashboard);
 
 // routes/profile.ts
-export const profileRouter = IRRouter();
+export const profileRouter = IRouter();
 profileRouter.use(authenticate);
 
 profileRouter.put('/', async (req, res, next) => {

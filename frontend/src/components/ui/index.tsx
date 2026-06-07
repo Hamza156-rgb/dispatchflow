@@ -47,10 +47,11 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   error?: string;
 }
 
-export function Input({ error, style, ...props }: InputProps) {
+export const Input = React.forwardRef<HTMLInputElement, InputProps>(function Input({ error, style, ...props }, ref) {
   return (
     <div>
       <input
+        ref={ref}
         style={{
           width: '100%', padding: '10px 14px', borderRadius: 8, fontSize: 14,
           border: `1.5px solid ${error ? '#ef4444' : 'var(--color-border)'}`,
@@ -63,12 +64,13 @@ export function Input({ error, style, ...props }: InputProps) {
       {error && <p style={{ margin: '4px 0 0', fontSize: 12, color: '#ef4444' }}>{error}</p>}
     </div>
   );
-}
+});
 
 // ─── Textarea ─────────────────────────────────────────────────────────────────
-export function Textarea({ style, ...props }: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
+export const Textarea = React.forwardRef<HTMLTextAreaElement, React.TextareaHTMLAttributes<HTMLTextAreaElement>>(function Textarea({ style, ...props }, ref) {
   return (
     <textarea
+      ref={ref}
       style={{
         width: '100%', padding: '10px 14px', borderRadius: 8, fontSize: 14,
         border: '1.5px solid var(--color-border)', background: 'var(--color-bg)',
@@ -78,12 +80,13 @@ export function Textarea({ style, ...props }: React.TextareaHTMLAttributes<HTMLT
       {...props}
     />
   );
-}
+});
 
 // ─── Select ───────────────────────────────────────────────────────────────────
-export function Select({ style, children, ...props }: React.SelectHTMLAttributes<HTMLSelectElement>) {
+export const Select = React.forwardRef<HTMLSelectElement, React.SelectHTMLAttributes<HTMLSelectElement>>(function Select({ style, children, ...props }, ref) {
   return (
     <select
+      ref={ref}
       style={{
         width: '100%', padding: '10px 14px', borderRadius: 8, fontSize: 14,
         border: '1.5px solid var(--color-border)', background: 'var(--color-bg)',
@@ -95,7 +98,7 @@ export function Select({ style, children, ...props }: React.SelectHTMLAttributes
       {children}
     </select>
   );
-}
+});
 
 // ─── FormField ────────────────────────────────────────────────────────────────
 interface FormFieldProps {
