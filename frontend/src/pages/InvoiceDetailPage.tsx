@@ -31,6 +31,18 @@ export default function InvoiceDetailPage() {
     showToast('Invoice marked as sent');
   };
 
+  const handleStatusChange = async (status: string) => {
+    const data: any = { status };
+    if (status === 'SENT' && !invoice.sentAt) data.sentAt = new Date().toISOString();
+    if (status === 'PAID' && !invoice.paidAt) data.paidAt = new Date().toISOString();
+    try {
+      await updateInvoice.mutateAsync({ id: id!, data });
+      showToast(`Status changed to ${status.charAt(0) + status.slice(1).toLowerCase()}`);
+    } catch {
+      showToast('Could not update status', 'error');
+    }
+  };
+
   const handleRecordPayment = async () => {
     await recordPayment.mutateAsync({ invoiceId: id!, ...payForm, amount: parseFloat(payForm.amount) });
     setPayModal(false);
@@ -65,7 +77,18 @@ export default function InvoiceDetailPage() {
       </div>
 
       {/* Actions bar */}
-      <div style={{ display: 'flex', gap: 10, marginBottom: 24, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 10, marginBottom: 24, flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginRight: 4 }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-muted)' }}>Status</span>
+          <div style={{ width: 150 }}>
+            <Select value={invoice.status} disabled={updateInvoice.isPending}
+              onChange={(e) => handleStatusChange(e.target.value)}>
+              {['DRAFT', 'SENT', 'PAID', 'OVERDUE', 'CANCELLED'].map((s) => (
+                <option key={s} value={s}>{s.charAt(0) + s.slice(1).toLowerCase()}</option>
+              ))}
+            </Select>
+          </div>
+        </div>
         {invoice.status === 'DRAFT' && (
           <Button onClick={handleMarkSent} variant="secondary">📤 Mark as Sent</Button>
         )}

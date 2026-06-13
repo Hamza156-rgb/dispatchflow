@@ -49,6 +49,30 @@ export const getInvoices = async (req: Request, res: Response, next: NextFunctio
   }
 };
 
+export const getInvoice = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = (req as any).userId;
+    const { id } = req.params;
+
+    const invoice = await prisma.invoice.findFirst({
+      where: { id, userId },
+      include: { client: true, items: true, payments: true },
+    });
+
+    if (!invoice) return res.status(404).json({ error: 'Invoice not found' });
+
+    // Auto-update overdue status
+    if (invoice.status === 'SENT' && invoice.dueDate < new Date()) {
+      await prisma.invoice.update({ where: { id: invoice.id }, data: { status: 'OVERDUE' } });
+      invoice.status = 'OVERDUE';
+    }
+
+    res.json(invoice);
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const createInvoice = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = (req as any).userId;
@@ -241,8 +265,11 @@ export const generatePDF = async (req: Request, res: Response, next: NextFunctio
       doc.fontSize(9).font('Helvetica').fillColor('#666').text(invoice.notes, 50, y + 14, { width: 300 });
     }
 
-    // Footer
-    doc.fontSize(8).fillColor('#9ca3af').text('Thank you for your business.', 50, 750, { align: 'center' });
+    // Footer — keep within the bottom margin so PDFKit doesn't spill onto a 2nd page
+    doc.fontSize(8).fillColor('#9ca3af').text('Thank you for your business.', 50, doc.page.height - 72, {
+      align: 'center',
+      lineBreak: false,
+    });
 
     doc.end();
   } catch (err) {
@@ -263,7 +290,7 @@ export const sendInvoiceEmail = async (req: Request, res: Response, next: NextFu
 
     if (!invoice) return res.status(404).json({ error: 'Invoice not found' });
 
-    const transporter = nodemailer.createTransporter({
+    const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
       port: Number(process.env.SMTP_PORT || 587),
       auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },

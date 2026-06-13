@@ -83,12 +83,13 @@ clientsRouter.delete('/:id', async (req, res, next) => {
 
 // routes/invoices.ts
 import { Router as IRouter } from 'express';
-import { getInvoices, createInvoice, updateInvoice, deleteInvoice, generatePDF, sendInvoiceEmail } from '../controllers/invoices';
+import { getInvoices, getInvoice, createInvoice, updateInvoice, deleteInvoice, generatePDF, sendInvoiceEmail } from '../controllers/invoices';
 
 export const invoicesRouter = IRouter();
 invoicesRouter.use(authenticate);
 
 invoicesRouter.get('/', getInvoices);
+invoicesRouter.get('/:id', getInvoice);
 invoicesRouter.post('/', createInvoice);
 invoicesRouter.put('/:id', updateInvoice);
 invoicesRouter.delete('/:id', deleteInvoice);
