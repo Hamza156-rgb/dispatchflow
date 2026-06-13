@@ -21,14 +21,15 @@ const PORT = process.env.PORT || 5000;
 
 // Security middleware
 app.use(helmet());
+const isAllowedOrigin = (origin?: string) => {
+  if (!origin) return true;                                  // curl / mobile / server-to-server
+  if (/^http:\/\/localhost:\d+$/.test(origin)) return true; // local dev (any port)
+  if (/^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(origin)) return true; // any Vercel deploy
+  if (origin === process.env.FRONTEND_URL) return true;     // explicit production domain
+  return false;
+};
 app.use(cors({
-  origin: (origin, callback) => {
-    // Allow non-browser clients (curl, mobile) and any localhost dev port
-    if (!origin || /^http:\/\/localhost:\d+$/.test(origin) || origin === process.env.FRONTEND_URL) {
-      return callback(null, true);
-    }
-    return callback(null, false);
-  },
+  origin: (origin, callback) => callback(null, isAllowedOrigin(origin)),
   credentials: true,
 }));
 
