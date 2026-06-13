@@ -125,7 +125,7 @@ export default function InvoicesPage() {
                 </tr>
               </thead>
               <tbody>
-                {data.invoices.map((inv) => (
+                {data.invoices.map((inv: any) => (
                   <tr key={inv.id} onClick={() => navigate(`/invoices/${inv.id}`)}
                     style={{ borderBottom: '1px solid var(--color-border)', cursor: 'pointer', opacity: busyId === inv.id ? 0.5 : 1, transition: 'opacity 0.15s, background 0.15s' }}
                     onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--color-surface)')}

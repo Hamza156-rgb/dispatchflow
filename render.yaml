@@ -1,0 +1,23 @@
+# Render Blueprint for the DispatchFlow backend API (free plan).
+# Database lives on Neon (free) — set DATABASE_URL in the Render dashboard.
+# Deploy: Render dashboard → New → Blueprint → pick this repo.
+services:
+  - type: web
+    name: dispatchflow-api
+    runtime: node
+    plan: free
+    rootDir: backend
+    # --include=dev: Render sets NODE_ENV=production, which would otherwise skip
+    # typescript/prisma (devDeps) that the build needs.
+    buildCommand: npm install --include=dev && npx prisma generate && npm run build
+    startCommand: npx prisma migrate deploy && npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: JWT_SECRET
+        generateValue: true        # Render generates a strong secret
+      - key: DATABASE_URL
+        sync: false                # paste your Neon connection string
+      - key: FRONTEND_URL
+        sync: false                # set to your Vercel URL, e.g. https://dispatchflow.vercel.app

@@ -47,7 +47,7 @@ export default function InvoiceDetailPage() {
   };
 
   const handleRecordPayment = async () => {
-    await recordPayment.mutateAsync({ invoiceId: id!, ...payForm, amount: parseFloat(payForm.amount) });
+    await recordPayment.mutateAsync({ invoiceId: id!, ...payForm, paymentMethod: payForm.paymentMethod as any, amount: parseFloat(payForm.amount) });
     setPayModal(false);
     showToast('Payment recorded');
   };

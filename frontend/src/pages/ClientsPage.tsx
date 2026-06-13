@@ -58,7 +58,7 @@ export default function ClientsPage() {
                 </tr>
               </thead>
               <tbody>
-                {data.clients.map((c) => (
+                {data.clients.map((c: any) => (
                   <tr key={c.id} onClick={() => navigate(`/clients/${c.id}`)}
                     style={{ borderBottom: '1px solid var(--color-border)', cursor: 'pointer' }}>
                     <td style={{ padding: '13px 18px' }}>
