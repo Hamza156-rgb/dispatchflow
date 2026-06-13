@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { authApi } from '../lib/api';
 import { useAuthStore } from '../store/authStore';
 import { Button, Input, FormField } from '../components/ui';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 
 interface LoginForm {
   email: string;
@@ -18,6 +19,7 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const { setAuth } = useAuthStore();
   const navigate = useNavigate();
+  const isMobile = useMediaQuery('(max-width: 768px)');
 
   const onSubmit = async (data: LoginForm) => {
     setLoading(true);
@@ -35,7 +37,8 @@ export default function LoginPage() {
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', background: '#f8fafc' }}>
-      {/* Hero panel */}
+      {/* Hero panel — hidden on mobile */}
+      {!isMobile && (
       <div style={{ flex: 1, background: '#0f172a', display: 'flex', flexDirection: 'column',
         justifyContent: 'center', padding: '60px 72px', position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', width: 500, height: 500, borderRadius: '50%',
@@ -69,11 +72,22 @@ export default function LoginPage() {
           ))}
         </div>
       </div>
+      )}
 
       {/* Form panel */}
-      <div style={{ width: 500, display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: '48px 56px' }}>
-        <div style={{ width: '100%' }}>
+      <div style={{ width: isMobile ? '100%' : 500, display: 'flex', alignItems: 'center',
+        justifyContent: 'center', padding: isMobile ? '40px 20px' : '48px 56px' }}>
+        <div style={{ width: '100%', maxWidth: 420 }}>
+          {/* Compact logo — shown on mobile in place of the hero panel */}
+          {isMobile && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 32 }}>
+              <div style={{ width: 42, height: 42, borderRadius: 12, background: '#2563eb',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>🚛</div>
+              <span style={{ fontWeight: 900, fontSize: 21, letterSpacing: '-0.5px', color: '#0f172a' }}>
+                Dispatch<span style={{ color: '#2563eb' }}>Flow</span>
+              </span>
+            </div>
+          )}
           <h3 style={{ fontSize: 26, fontWeight: 800, color: '#0f172a', letterSpacing: '-0.5px',
             margin: '0 0 6px' }}>Welcome back</h3>
           <p style={{ color: '#64748b', fontSize: 14, margin: '0 0 32px' }}>Sign in to your DispatchFlow account</p>

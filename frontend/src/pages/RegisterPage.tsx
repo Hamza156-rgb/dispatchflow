@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { authApi } from '../lib/api';
 import { useAuthStore } from '../store/authStore';
 import { Button, Input, FormField } from '../components/ui';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 
 interface RegisterForm {
   fullName: string;
@@ -19,6 +20,7 @@ export default function RegisterPage() {
   const [error, setError] = useState('');
   const { setAuth } = useAuthStore();
   const navigate = useNavigate();
+  const isMobile = useMediaQuery('(max-width: 768px)');
 
   const onSubmit = async (data: RegisterForm) => {
     setLoading(true);
@@ -36,9 +38,9 @@ export default function RegisterPage() {
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center',
-      justifyContent: 'center', background: '#f8fafc', padding: 24 }}>
-      <div style={{ width: '100%', maxWidth: 520, background: '#fff', borderRadius: 20,
-        border: '1.5px solid #e2e8f0', padding: '40px 44px',
+      justifyContent: 'center', background: '#f8fafc', padding: isMobile ? 16 : 24 }}>
+      <div style={{ width: '100%', maxWidth: 520, background: '#fff', borderRadius: isMobile ? 16 : 20,
+        border: '1.5px solid #e2e8f0', padding: isMobile ? '28px 22px' : '40px 44px',
         boxShadow: '0 4px 40px rgba(0,0,0,0.06)' }}>
 
         {/* Logo */}
@@ -65,7 +67,7 @@ export default function RegisterPage() {
         )}
 
         <form onSubmit={handleSubmit(onSubmit)}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16 }}>
             <FormField label="Full Name" required error={errors.fullName?.message}>
               <Input placeholder="John Smith"
                 {...register('fullName', { required: 'Required', minLength: { value: 2, message: 'Min 2 chars' } })}
