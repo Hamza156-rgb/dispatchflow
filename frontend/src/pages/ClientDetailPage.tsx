@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useClient, useUpdateClient, useDeleteClient } from '../hooks/useApi';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 import { Button, Input, Modal, FormField, Spinner, StatusBadge, Avatar, Toast, Textarea, EmptyState } from '../components/ui';
 import type { ClientPayload } from '../types';
 
@@ -13,6 +14,7 @@ export default function ClientDetailPage() {
   const { data: client, isLoading } = useClient(id!);
   const updateClient = useUpdateClient();
   const deleteClient = useDeleteClient();
+  const isMobile = useMediaQuery('(max-width: 768px)');
 
   const [editModal, setEditModal] = useState(false);
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
@@ -49,7 +51,7 @@ export default function ClientDetailPage() {
   const totalBilled = invoices.reduce((s: number, i: any) => s + Number(i.totalAmount), 0);
 
   return (
-    <div style={{ padding: 28 }}>
+    <div style={{ padding: isMobile ? 16 : 28 }}>
       {toast && <Toast message={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 24, fontSize: 13 }}>
@@ -95,7 +97,8 @@ export default function ClientDetailPage() {
           <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--color-text)' }}>Invoices</h3>
         </div>
         {invoices.length ? (
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+          <table style={{ width: '100%', minWidth: 600, borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: 'var(--color-surface)' }}>
                 {['Invoice', 'Issue Date', 'Status', 'Amount'].map((h) => (
@@ -117,6 +120,7 @@ export default function ClientDetailPage() {
               ))}
             </tbody>
           </table>
+          </div>
         ) : (
           <EmptyState icon="📄" title="No invoices for this client"
             action={<Link to="/invoices/new"><Button>+ New Invoice</Button></Link>} />
@@ -126,14 +130,14 @@ export default function ClientDetailPage() {
       {/* Edit modal */}
       <Modal open={editModal} onClose={() => setEditModal(false)} title="Edit Client" width={560}>
         <form onSubmit={handleSubmit(onSave)}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16 }}>
             <FormField label="Company Name" required><Input {...register('companyName', { required: true })} /></FormField>
             <FormField label="Contact Person" required><Input {...register('contactPerson', { required: true })} /></FormField>
             <FormField label="Email" required><Input type="email" {...register('email', { required: true })} /></FormField>
             <FormField label="Phone"><Input {...register('phone')} /></FormField>
           </div>
           <FormField label="Address"><Input {...register('address')} /></FormField>
-          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr 1fr', gap: 16 }}>
             <FormField label="City"><Input {...register('city')} /></FormField>
             <FormField label="State"><Input {...register('state')} /></FormField>
             <FormField label="Zip"><Input {...register('zipCode')} /></FormField>

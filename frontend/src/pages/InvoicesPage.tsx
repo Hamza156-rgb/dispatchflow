@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useInvoices, useDashboard, useUpdateInvoice, useDeleteInvoice, useDownloadPdf } from '../hooks/useApi';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 import { Button, Input, Select, Spinner, EmptyState, StatusBadge, Pagination, Toast, Avatar } from '../components/ui';
 
 const fmt = (n: number) => `$${Number(n).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
@@ -23,6 +24,7 @@ function StatCard({ icon, label, value, accent, bg }: { icon: string; label: str
 
 export default function InvoicesPage() {
   const navigate = useNavigate();
+  const isMobile = useMediaQuery('(max-width: 768px)');
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState('');
   const [search, setSearch] = useState('');
@@ -72,7 +74,7 @@ export default function InvoicesPage() {
   const iconBtn: React.CSSProperties = { background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', borderRadius: 8, padding: '6px 9px', cursor: 'pointer', fontSize: 14, lineHeight: 1 };
 
   return (
-    <div style={{ padding: 28 }}>
+    <div style={{ padding: isMobile ? 16 : 28 }}>
       {toast && <Toast message={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
 
       {/* Header */}
@@ -112,7 +114,8 @@ export default function InvoicesPage() {
             action={<Link to="/invoices/new"><Button>+ New Invoice</Button></Link>} />
         ) : (
           <>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 820 }}>
               <thead>
                 <tr style={{ background: 'var(--color-surface)' }}>
                   <th style={th}>Invoice</th>
@@ -163,6 +166,7 @@ export default function InvoicesPage() {
                 ))}
               </tbody>
             </table>
+            </div>
             <div style={{ borderTop: '1px solid var(--color-border)' }}>
               <Pagination page={data.page} totalPages={data.totalPages} onChange={setPage} />
             </div>

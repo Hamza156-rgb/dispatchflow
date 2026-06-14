@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { useCreateInvoice } from '../hooks/useApi';
 import { useClients } from '../hooks/useApi';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 import { Button, Input, Textarea, Select, FormField, Toast } from '../components/ui';
 
 interface ItemRow {
@@ -23,6 +24,7 @@ interface InvoiceForm {
 
 export default function CreateInvoicePage() {
   const navigate = useNavigate();
+  const isMobile = useMediaQuery('(max-width: 768px)');
   const { data: clientsData } = useClients({ limit: 200 });
   const createInvoice = useCreateInvoice();
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
@@ -76,7 +78,7 @@ export default function CreateInvoicePage() {
   const card = { background: 'var(--color-bg)', borderRadius: 14, border: '1.5px solid var(--color-border)', padding: '24px 28px', marginBottom: 20 };
 
   return (
-    <div style={{ padding: 28, maxWidth: 860, margin: '0 auto' }}>
+    <div style={{ padding: isMobile ? 16 : 28, maxWidth: 860, margin: '0 auto' }}>
       {toast && <Toast message={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
 
       <form onSubmit={handleSubmit(onSubmit)}>
@@ -85,7 +87,7 @@ export default function CreateInvoicePage() {
           <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 700, color: 'var(--color-text)' }}>
             Invoice Details
           </h3>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 16 }}>
             <FormField label="Client" required error={errors.clientId?.message}>
               <Select {...register('clientId', { required: 'Select a client' })}>
                 <option value="">Select client…</option>
@@ -108,7 +110,8 @@ export default function CreateInvoicePage() {
           <h3 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 700, color: 'var(--color-text)' }}>
             Line Items
           </h3>
-          <div style={{ border: '1.5px solid var(--color-border)', borderRadius: 10, overflow: 'hidden' }}>
+          <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+          <div style={{ minWidth: 560, border: '1.5px solid var(--color-border)', borderRadius: 10, overflow: 'hidden' }}>
             {/* Header */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 90px 110px 100px 44px',
               gap: 0, padding: '10px 14px', background: 'var(--color-surface)',
@@ -159,6 +162,7 @@ export default function CreateInvoicePage() {
               + Add Line Item
             </button>
           </div>
+          </div>
 
           {/* Totals */}
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 20 }}>
@@ -188,7 +192,7 @@ export default function CreateInvoicePage() {
 
         {/* Notes & Terms */}
         <div style={card}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 20 }}>
             <FormField label="Notes">
               <Textarea rows={3} placeholder="Payment instructions, load details…"
                 {...register('notes')} />
@@ -204,7 +208,7 @@ export default function CreateInvoicePage() {
         </div>
 
         {/* Actions */}
-        <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'flex-end' }}>
           <Button type="button" variant="secondary" onClick={() => navigate('/invoices')}>Cancel</Button>
           <Button type="submit" loading={createInvoice.isPending}>Create Invoice</Button>
         </div>

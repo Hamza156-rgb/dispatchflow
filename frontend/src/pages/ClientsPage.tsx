@@ -2,11 +2,13 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useClients, useCreateClient } from '../hooks/useApi';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 import { Button, Input, Modal, FormField, Spinner, EmptyState, Avatar, Pagination, Toast, Textarea } from '../components/ui';
 import type { ClientPayload } from '../types';
 
 export default function ClientsPage() {
   const navigate = useNavigate();
+  const isMobile = useMediaQuery('(max-width: 768px)');
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [modal, setModal] = useState(false);
@@ -29,7 +31,7 @@ export default function ClientsPage() {
   };
 
   return (
-    <div style={{ padding: 28 }}>
+    <div style={{ padding: isMobile ? 16 : 28 }}>
       {toast && <Toast message={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
 
       {/* Toolbar */}
@@ -48,7 +50,8 @@ export default function ClientsPage() {
       ) : (
         <>
           <div style={{ background: 'var(--color-bg)', borderRadius: 14, border: '1.5px solid var(--color-border)', overflow: 'hidden' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 560 }}>
               <thead>
                 <tr style={{ background: 'var(--color-surface)' }}>
                   {['Company', 'Contact', 'Email', 'Invoices', ''].map((h) => (
@@ -77,6 +80,7 @@ export default function ClientsPage() {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
           <Pagination page={data.page} totalPages={data.totalPages} onChange={setPage} />
         </>
@@ -85,7 +89,7 @@ export default function ClientsPage() {
       {/* Add Client modal */}
       <Modal open={modal} onClose={() => setModal(false)} title="Add Client" width={560}>
         <form onSubmit={handleSubmit(onCreate)}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16 }}>
             <FormField label="Company Name" required error={errors.companyName?.message}>
               <Input {...register('companyName', { required: 'Required' })} />
             </FormField>
@@ -102,7 +106,7 @@ export default function ClientsPage() {
           <FormField label="Address">
             <Input {...register('address')} />
           </FormField>
-          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr 1fr', gap: 16 }}>
             <FormField label="City"><Input {...register('city')} /></FormField>
             <FormField label="State"><Input {...register('state')} /></FormField>
             <FormField label="Zip"><Input {...register('zipCode')} /></FormField>

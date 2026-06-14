@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useDashboard } from '../hooks/useApi';
 import { useAuthStore } from '../store/authStore';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 import { Spinner, StatusBadge, EmptyState, Button } from '../components/ui';
 
 const fmt = (n: number) =>
@@ -23,6 +24,7 @@ function StatCard({ icon, label, value, accent }: { icon: string; label: string;
 export default function DashboardPage() {
   const { data, isLoading } = useDashboard();
   const { user } = useAuthStore();
+  const isMobile = useMediaQuery('(max-width: 768px)');
 
   if (isLoading) return <Spinner />;
   if (!data) return <div style={{ padding: 28, color: 'var(--color-muted)' }}>No data.</div>;
@@ -34,7 +36,7 @@ export default function DashboardPage() {
     .reduce((s, c) => s + Number(c._sum.totalAmount || 0), 0);
 
   return (
-    <div style={{ padding: 28 }}>
+    <div style={{ padding: isMobile ? 16 : 28 }}>
       <div style={{ marginBottom: 24 }}>
         <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: 'var(--color-text)' }}>
           Welcome back{user ? `, ${user.fullName.split(' ')[0]}` : ''} 👋
@@ -52,7 +54,7 @@ export default function DashboardPage() {
         <StatCard icon="🏢" label="Clients" value={String(data.totalClients)} accent="#f3e8ff" />
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 20, alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr', gap: 20, alignItems: 'start' }}>
         {/* Recent invoices */}
         <div style={{ background: 'var(--color-bg)', borderRadius: 14, border: '1.5px solid var(--color-border)', overflow: 'hidden' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center',

@@ -3,12 +3,14 @@ import { useForm } from 'react-hook-form';
 import { useUpdateProfile } from '../hooks/useApi';
 import { useAuthStore } from '../store/authStore';
 import { Button, Input, FormField, Toast, Avatar } from '../components/ui';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 import type { ProfilePayload } from '../types';
 
 export default function SettingsPage() {
   const { user, updateUser } = useAuthStore();
   const updateProfile = useUpdateProfile();
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
+  const isMobile = useMediaQuery('(max-width: 768px)');
 
   const { register, handleSubmit } = useForm<ProfilePayload>({
     defaultValues: {
@@ -35,7 +37,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div style={{ padding: 28, maxWidth: 720, margin: '0 auto' }}>
+    <div style={{ padding: isMobile ? 16 : 28, maxWidth: 720, margin: '0 auto' }}>
       {toast && <Toast message={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
 
       {/* Identity */}
@@ -50,7 +52,7 @@ export default function SettingsPage() {
       <form onSubmit={handleSubmit(onSave)}>
         <div style={card}>
           <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 700, color: 'var(--color-text)' }}>Company Profile</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16 }}>
             <FormField label="Full Name" required><Input {...register('fullName', { required: true })} /></FormField>
             <FormField label="Company Name" required><Input {...register('companyName', { required: true })} /></FormField>
             <FormField label="Phone Number"><Input {...register('phoneNumber')} /></FormField>

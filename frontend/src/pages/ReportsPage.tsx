@@ -4,6 +4,7 @@ import {
   PieChart, Pie, Cell, Legend,
 } from 'recharts';
 import { useReports } from '../hooks/useApi';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 import { Select, Spinner } from '../components/ui';
 
 const fmt = (n: number) => `$${Number(n).toLocaleString('en-US')}`;
@@ -19,6 +20,7 @@ const card: React.CSSProperties = {
 export default function ReportsPage() {
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState(currentYear);
+  const isMobile = useMediaQuery('(max-width: 768px)');
   const { data, isLoading } = useReports(year);
 
   if (isLoading) return <Spinner />;
@@ -30,8 +32,8 @@ export default function ReportsPage() {
   const totalRevenue = monthly.reduce((s: number, m: any) => s + m.revenue, 0);
 
   return (
-    <div style={{ padding: 28 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+    <div style={{ padding: isMobile ? 16 : 28 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: 'var(--color-text)' }}>Revenue {year}</h2>
           <p style={{ margin: '4px 0 0', color: 'var(--color-muted)', fontSize: 14 }}>Total collected: <strong style={{ color: '#16a34a' }}>{fmt(totalRevenue)}</strong></p>
@@ -57,7 +59,7 @@ export default function ReportsPage() {
         </ResponsiveContainer>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 20 }}>
         {/* Status pie */}
         <div style={card}>
           <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 700, color: 'var(--color-text)' }}>Invoices by Status</h3>

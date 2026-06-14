@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useInvoice, useUpdateInvoice, useDeleteInvoice, useRecordPayment, useSendInvoiceEmail, useDownloadPdf } from '../hooks/useApi';
 import { Button, StatusBadge, Modal, FormField, Input, Select, Toast, Spinner } from '../components/ui';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 
 const fmt = (n: number) => `$${Number(n).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
 
@@ -14,6 +15,7 @@ export default function InvoiceDetailPage() {
   const recordPayment = useRecordPayment();
   const sendEmail = useSendInvoiceEmail();
   const downloadPdf = useDownloadPdf();
+  const isMobile = useMediaQuery('(max-width: 768px)');
 
   const [payModal, setPayModal] = useState(false);
   const [emailModal, setEmailModal] = useState(false);
@@ -69,7 +71,7 @@ export default function InvoiceDetailPage() {
   const sectionLabel: React.CSSProperties = { fontSize: 11, fontWeight: 700, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' };
 
   return (
-    <div style={{ padding: 28 }}>
+    <div style={{ padding: isMobile ? 16 : 28 }}>
       {toast && <Toast message={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
 
       {/* Breadcrumb */}
@@ -79,12 +81,12 @@ export default function InvoiceDetailPage() {
         <span style={{ color: 'var(--color-text)', fontWeight: 600 }}>{invoice.invoiceNumber}</span>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 320px', gap: 24, alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'minmax(0, 1fr) 320px', gap: 24, alignItems: 'start' }}>
         {/* ─── LEFT: invoice document ─────────────────────────────── */}
         <div>
           <div style={{ background: 'var(--color-bg)', borderRadius: 16, border: '1.5px solid var(--color-border)', overflow: 'hidden' }}>
             {/* Header */}
-            <div style={{ background: '#0f172a', padding: '28px 36px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div style={{ background: '#0f172a', padding: isMobile ? '20px' : '28px 36px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
               <div>
                 <div style={{ fontSize: 30, fontWeight: 900, color: '#fff', letterSpacing: '-1px' }}>INVOICE</div>
                 <div style={{ color: '#60a5fa', fontWeight: 700, fontSize: 15, marginTop: 4 }}>{invoice.invoiceNumber}</div>
@@ -95,9 +97,9 @@ export default function InvoiceDetailPage() {
               </div>
             </div>
 
-            <div style={{ padding: '28px 36px' }}>
+            <div style={{ padding: isMobile ? '20px' : '28px 36px' }}>
               {/* Meta */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24, marginBottom: 28 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 24, marginBottom: 28 }}>
                 {[
                   ['Issue Date', new Date(invoice.issueDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })],
                   ['Due Date',   new Date(invoice.dueDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })],
@@ -119,7 +121,8 @@ export default function InvoiceDetailPage() {
               </div>
 
               {/* Items */}
-              <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 24 }}>
+              <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+              <table style={{ width: '100%', minWidth: 520, borderCollapse: 'collapse', marginBottom: 24 }}>
                 <thead>
                   <tr style={{ background: 'var(--color-surface)' }}>
                     {['Description', 'Qty', 'Rate', 'Amount'].map(h => (
@@ -138,6 +141,7 @@ export default function InvoiceDetailPage() {
                   ))}
                 </tbody>
               </table>
+              </div>
 
               {/* Totals */}
               <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
@@ -239,7 +243,7 @@ export default function InvoiceDetailPage() {
           <div style={{ fontSize: 36, fontWeight: 900, color: '#16a34a' }}>{fmt(balance)}</div>
           <div style={{ color: 'var(--color-muted)', fontSize: 14 }}>Balance due for {invoice.invoiceNumber}</div>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16 }}>
           <FormField label="Amount"><Input type="number" step="0.01" value={payForm.amount} onChange={e => setPayForm(f => ({...f, amount: e.target.value}))} /></FormField>
           <FormField label="Payment Date"><Input type="date" value={payForm.paymentDate} onChange={e => setPayForm(f => ({...f, paymentDate: e.target.value}))} /></FormField>
         </div>
