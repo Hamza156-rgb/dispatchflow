@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { clientsApi, invoicesApi, paymentsApi, reportsApi, profileApi, downloadInvoicePdf } from '../lib/api';
-import type { ClientPayload, CreateInvoicePayload, PaymentPayload, ProfilePayload } from '../types';
+import { clientsApi, invoicesApi, paymentsApi, reportsApi, profileApi, loadsApi, downloadInvoicePdf } from '../lib/api';
+import type { ClientPayload, CreateInvoicePayload, PaymentPayload, ProfilePayload, LoadPayload } from '../types';
 
 // ─── Query Keys ───────────────────────────────────────────────────────────────
 export const QK = {
@@ -153,6 +153,37 @@ export const useItemSuggestions = (clientId?: string) =>
     queryFn: () => invoicesApi.itemSuggestions(clientId),
     enabled: true,
   });
+
+// ─── Loads ────────────────────────────────────────────────────────────────────
+export const useLoads = (params?: { page?: number; limit?: number; status?: string; paymentStatus?: string; clientId?: string; search?: string }) =>
+  useQuery({
+    queryKey: ['loads', params],
+    queryFn: () => loadsApi.list(params),
+  });
+
+export const useCreateLoad = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: LoadPayload) => loadsApi.create(data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['loads'] }),
+  });
+};
+
+export const useUpdateLoad = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<LoadPayload> }) => loadsApi.update(id, data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['loads'] }),
+  });
+};
+
+export const useDeleteLoad = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => loadsApi.delete(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['loads'] }),
+  });
+};
 
 // ─── Profile ──────────────────────────────────────────────────────────────────
 export const useUpdateProfile = () =>

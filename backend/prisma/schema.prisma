@@ -27,6 +27,7 @@ model User {
 
   clients     Client[]
   invoices    Invoice[]
+  loads       Load[]
 
   @@index([email])
 }
@@ -49,6 +50,7 @@ model Client {
   userId        String
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   invoices      Invoice[]
+  loads         Load[]
 
   @@index([userId])
   @@index([companyName])
@@ -112,6 +114,57 @@ model Payment {
   invoice       Invoice       @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
 
   @@index([invoiceId])
+}
+
+model Load {
+  id            String        @id @default(cuid())
+  loadNumber    String
+  // Route
+  originCity    String?
+  originState   String?
+  destCity      String?
+  destState     String?
+  // Schedule
+  pickupAt      DateTime?
+  deliveryAt    DateTime?
+  // Money
+  miles         Decimal?      @db.Decimal(10, 2)
+  rate          Decimal       @db.Decimal(10, 2)
+  // Freight details
+  equipment     String?
+  weight        String?
+  commodity     String?
+  driver        String?
+  referenceNumber String?
+  // Lifecycle
+  status        LoadStatus    @default(PENDING)
+  paymentStatus LoadPaymentStatus @default(UNPAID)
+  notes         String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  userId        String
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clientId      String
+  client        Client        @relation(fields: [clientId], references: [id])
+
+  @@unique([userId, loadNumber])
+  @@index([userId])
+  @@index([clientId])
+  @@index([status])
+  @@index([paymentStatus])
+}
+
+enum LoadStatus {
+  PENDING
+  ACTIVE
+  DELIVERED
+  CANCELLED
+}
+
+enum LoadPaymentStatus {
+  UNPAID
+  PAID
 }
 
 enum InvoiceStatus {

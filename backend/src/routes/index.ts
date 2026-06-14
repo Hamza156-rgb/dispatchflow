@@ -128,6 +128,17 @@ paymentsRouter.post('/', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// routes/loads.ts
+import { getLoads, getLoad, createLoad, updateLoad, deleteLoad } from '../controllers/loads';
+
+export const loadsRouter = IRouter();
+loadsRouter.use(authenticate);
+loadsRouter.get('/', getLoads);
+loadsRouter.get('/:id', getLoad);
+loadsRouter.post('/', createLoad);
+loadsRouter.put('/:id', updateLoad);
+loadsRouter.delete('/:id', deleteLoad);
+
 // routes/reports.ts
 import { getReports, getDashboard, getInsights } from '../controllers/reports';
 

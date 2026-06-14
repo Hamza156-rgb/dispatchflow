@@ -15,6 +15,7 @@ interface SidebarProps {
 const NAV = [
   { to: '/dashboard', label: 'Dashboard', icon: '📊' },
   { to: '/clients', label: 'Clients', icon: '🏢' },
+  { to: '/loads', label: 'Loads', icon: '🚚' },
   { to: '/invoices', label: 'Invoices', icon: '📄' },
   { to: '/reports', label: 'Reports', icon: '📈' },
   { to: '/insights', label: 'Insights', icon: '✨' },

@@ -115,6 +115,69 @@ export interface CreateInvoicePayload {
   items: Omit<InvoiceItem, 'id' | 'amount'>[];
 }
 
+// ─── Load (dispatch board) ──────────────────────────────────────────────────────
+export type LoadStatus = 'PENDING' | 'ACTIVE' | 'DELIVERED' | 'CANCELLED';
+export type LoadPaymentStatus = 'UNPAID' | 'PAID';
+
+export interface Load {
+  id: string;
+  loadNumber: string;
+  originCity?: string;
+  originState?: string;
+  destCity?: string;
+  destState?: string;
+  pickupAt?: string;
+  deliveryAt?: string;
+  miles?: number | string | null;
+  rate: number | string;
+  equipment?: string;
+  weight?: string;
+  commodity?: string;
+  driver?: string;
+  referenceNumber?: string;
+  status: LoadStatus;
+  paymentStatus: LoadPaymentStatus;
+  notes?: string;
+  createdAt: string;
+  clientId: string;
+  client: { id: string; companyName: string };
+}
+
+export interface LoadsResponse {
+  loads: Load[];
+  total: number;
+  page: number;
+  totalPages: number;
+  summary: {
+    totalLoads: number;
+    pending: number;
+    active: number;
+    delivered: number;
+    totalRevenue: number;
+    unpaidAmount: number;
+  };
+}
+
+export interface LoadPayload {
+  clientId: string;
+  originCity?: string;
+  originState?: string;
+  destCity?: string;
+  destState?: string;
+  pickupAt?: string;
+  deliveryAt?: string;
+  miles?: number | string;
+  rate: number | string;
+  equipment?: string;
+  weight?: string;
+  commodity?: string;
+  driver?: string;
+  referenceNumber?: string;
+  status?: LoadStatus;
+  paymentStatus?: LoadPaymentStatus;
+  notes?: string;
+}
+
 // ─── API Responses ────────────────────────────────────────────────────────────
 export interface PaginatedResponse<T> {
   data: T[];

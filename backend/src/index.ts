@@ -10,6 +10,7 @@ import {
   paymentsRouter,
   reportsRouter,
   profileRouter,
+  loadsRouter,
 } from './routes';
 import { errorHandler } from './middleware/errorHandler';
 import { logger } from './utils/logger';
@@ -60,6 +61,7 @@ app.use('/api/invoices', invoicesRouter);
 app.use('/api/payments', paymentsRouter);
 app.use('/api/reports', reportsRouter);
 app.use('/api/profile', profileRouter);
+app.use('/api/loads', loadsRouter);
 
 // Health check
 app.get('/api/health', (req, res) => {

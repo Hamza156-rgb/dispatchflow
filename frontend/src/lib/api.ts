@@ -60,6 +60,15 @@ export const paymentsApi = {
   record: (data: any) => api.post('/payments', data).then(r => r.data),
 };
 
+// ─── Loads ────────────────────────────────────────────────────────────────────
+export const loadsApi = {
+  list: (params?: any) => api.get('/loads', { params }).then(r => r.data),
+  get: (id: string) => api.get(`/loads/${id}`).then(r => r.data),
+  create: (data: any) => api.post('/loads', data).then(r => r.data),
+  update: (id: string, data: any) => api.put(`/loads/${id}`, data).then(r => r.data),
+  delete: (id: string) => api.delete(`/loads/${id}`).then(r => r.data),
+};
+
 // ─── Reports ──────────────────────────────────────────────────────────────────
 export const reportsApi = {
   dashboard: () => api.get('/reports/dashboard').then(r => r.data),
