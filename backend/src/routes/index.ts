@@ -83,12 +83,13 @@ clientsRouter.delete('/:id', async (req, res, next) => {
 
 // routes/invoices.ts
 import { Router as IRouter } from 'express';
-import { getInvoices, getInvoice, createInvoice, updateInvoice, deleteInvoice, generatePDF, sendInvoiceEmail } from '../controllers/invoices';
+import { getInvoices, getInvoice, createInvoice, updateInvoice, deleteInvoice, generatePDF, sendInvoiceEmail, getItemSuggestions } from '../controllers/invoices';
 
 export const invoicesRouter = IRouter();
 invoicesRouter.use(authenticate);
 
 invoicesRouter.get('/', getInvoices);
+invoicesRouter.get('/item-suggestions', getItemSuggestions); // must precede '/:id'
 invoicesRouter.get('/:id', getInvoice);
 invoicesRouter.post('/', createInvoice);
 invoicesRouter.put('/:id', updateInvoice);
@@ -128,12 +129,13 @@ paymentsRouter.post('/', async (req, res, next) => {
 });
 
 // routes/reports.ts
-import { getReports, getDashboard } from '../controllers/reports';
+import { getReports, getDashboard, getInsights } from '../controllers/reports';
 
 export const reportsRouter = IRouter();
 reportsRouter.use(authenticate);
 reportsRouter.get('/', getReports);
 reportsRouter.get('/dashboard', getDashboard);
+reportsRouter.get('/insights', getInsights);
 
 // routes/profile.ts
 export const profileRouter = IRouter();

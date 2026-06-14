@@ -326,3 +326,29 @@ export const sendInvoiceEmail = async (req: Request, res: Response, next: NextFu
     next(err);
   }
 };
+
+// Smart line-item suggestions from past invoices (this client first, then all)
+export const getItemSuggestions = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = (req as any).userId;
+    const { clientId } = req.query;
+
+    const items = await prisma.invoiceItem.findMany({
+      where: { invoice: { userId, ...(clientId ? { clientId: clientId as string } : {}) } },
+      select: { description: true, rate: true },
+      orderBy: { id: 'desc' },
+      take: 200,
+    });
+
+    // Dedupe by description, keep most recent rate
+    const seen = new Map<string, number>();
+    for (const it of items) {
+      const key = it.description.trim();
+      if (key && !seen.has(key)) seen.set(key, Number(it.rate));
+    }
+    const suggestions = Array.from(seen.entries()).slice(0, 25).map(([description, rate]) => ({ description, rate }));
+    res.json({ suggestions });
+  } catch (err) {
+    next(err);
+  }
+};

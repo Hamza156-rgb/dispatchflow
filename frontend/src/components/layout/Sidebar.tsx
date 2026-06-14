@@ -17,6 +17,7 @@ const NAV = [
   { to: '/clients', label: 'Clients', icon: '🏢' },
   { to: '/invoices', label: 'Invoices', icon: '📄' },
   { to: '/reports', label: 'Reports', icon: '📈' },
+  { to: '/insights', label: 'Insights', icon: '✨' },
   { to: '/settings', label: 'Settings', icon: '⚙️' },
 ];
 

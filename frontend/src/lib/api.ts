@@ -52,6 +52,7 @@ export const invoicesApi = {
   delete: (id: string) => api.delete(`/invoices/${id}`).then(r => r.data),
   downloadPdf: (id: string) => api.get(`/invoices/${id}/pdf`, { responseType: 'blob' }).then(r => r.data),
   sendEmail: (id: string, message?: string) => api.post(`/invoices/${id}/send`, { message }).then(r => r.data),
+  itemSuggestions: (clientId?: string) => api.get('/invoices/item-suggestions', { params: { clientId } }).then(r => r.data),
 };
 
 // ─── Payments ─────────────────────────────────────────────────────────────────
@@ -63,6 +64,7 @@ export const paymentsApi = {
 export const reportsApi = {
   dashboard: () => api.get('/reports/dashboard').then(r => r.data),
   reports: (year?: number) => api.get('/reports', { params: { year } }).then(r => r.data),
+  insights: () => api.get('/reports/insights').then(r => r.data),
 };
 
 // ─── Profile ──────────────────────────────────────────────────────────────────

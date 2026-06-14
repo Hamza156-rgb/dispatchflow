@@ -10,6 +10,7 @@ import InvoicesPage from './pages/InvoicesPage';
 import InvoiceDetailPage from './pages/InvoiceDetailPage';
 import CreateInvoicePage from './pages/CreateInvoicePage';
 import ReportsPage from './pages/ReportsPage';
+import InsightsPage from './pages/InsightsPage';
 import SettingsPage from './pages/SettingsPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -41,6 +42,7 @@ export default function App() {
         <Route path="/invoices/new" element={<CreateInvoicePage />} />
         <Route path="/invoices/:id" element={<InvoiceDetailPage />} />
         <Route path="/reports" element={<ReportsPage />} />
+        <Route path="/insights" element={<InsightsPage />} />
         <Route path="/settings" element={<SettingsPage />} />
       </Route>
 

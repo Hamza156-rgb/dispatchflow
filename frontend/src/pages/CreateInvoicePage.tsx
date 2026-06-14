@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { useCreateInvoice } from '../hooks/useApi';
-import { useClients } from '../hooks/useApi';
+import { useClients, useItemSuggestions } from '../hooks/useApi';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { Button, Input, Textarea, Select, FormField, Toast } from '../components/ui';
 
@@ -32,7 +32,7 @@ export default function CreateInvoicePage() {
   const today = new Date().toISOString().slice(0, 10);
   const thirtyDays = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
 
-  const { register, handleSubmit, control, watch, formState: { errors } } = useForm<InvoiceForm>({
+  const { register, handleSubmit, control, watch, setValue, getValues, formState: { errors } } = useForm<InvoiceForm>({
     defaultValues: {
       issueDate: today,
       dueDate: thirtyDays,
@@ -46,6 +46,17 @@ export default function CreateInvoicePage() {
   const { fields, append, remove } = useFieldArray({ control, name: 'items' });
   const watchItems = watch('items');
   const watchTax = watch('taxRate');
+  const selectedClient = watch('clientId');
+
+  // Smart suggestions from past invoices (this client first)
+  const { data: suggData } = useItemSuggestions(selectedClient || undefined);
+  const suggestions: { description: string; rate: number }[] = suggData?.suggestions ?? [];
+
+  // When a known description is chosen, auto-fill its rate (if empty)
+  const onDescChange = (idx: number, value: string) => {
+    const match = suggestions.find((s) => s.description === value);
+    if (match && !getValues(`items.${idx}.rate`)) setValue(`items.${idx}.rate`, String(match.rate));
+  };
 
   const subtotal = watchItems.reduce((sum, item) => {
     return sum + (parseFloat(item.quantity || '0') * parseFloat(item.rate || '0'));
@@ -107,9 +118,18 @@ export default function CreateInvoicePage() {
 
         {/* Line Items */}
         <div style={card}>
-          <h3 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 700, color: 'var(--color-text)' }}>
+          <h3 style={{ margin: '0 0 4px', fontSize: 16, fontWeight: 700, color: 'var(--color-text)' }}>
             Line Items
           </h3>
+          {suggestions.length > 0 && (
+            <p style={{ margin: '0 0 14px', fontSize: 12, color: '#7c3aed', fontWeight: 600 }}>
+              ✨ {suggestions.length} smart suggestion{suggestions.length !== 1 ? 's' : ''} from past invoices — start typing a description to auto-fill the rate.
+            </p>
+          )}
+          {/* Native autocomplete source for description fields */}
+          <datalist id="df-item-suggestions">
+            {suggestions.map((s) => <option key={s.description} value={s.description} />)}
+          </datalist>
           <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
           <div style={{ minWidth: 560, border: '1.5px solid var(--color-border)', borderRadius: 10, overflow: 'hidden' }}>
             {/* Header */}
@@ -131,7 +151,8 @@ export default function CreateInvoicePage() {
                   gap: 8, padding: '10px 14px', borderBottom: '1px solid var(--color-border)',
                   alignItems: 'center' }}>
                   <input placeholder="e.g. Flatbed haul Chicago→Gary"
-                    {...register(`items.${idx}.description`, { required: true })}
+                    list="df-item-suggestions"
+                    {...register(`items.${idx}.description`, { required: true, onChange: (e) => onDescChange(idx, e.target.value) })}
                     style={{ padding: '8px 10px', border: '1px solid var(--color-border)', borderRadius: 6,
                       background: 'var(--color-bg)', color: 'var(--color-text)', fontSize: 13,
                       outline: 'none', width: '100%' }} />

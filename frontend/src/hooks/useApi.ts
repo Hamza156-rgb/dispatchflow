@@ -140,6 +140,20 @@ export const useReports = (year?: number) =>
     queryFn: () => reportsApi.reports(year),
   });
 
+export const useInsights = () =>
+  useQuery({
+    queryKey: ['reports', 'insights'],
+    queryFn: () => reportsApi.insights(),
+    staleTime: 30_000,
+  });
+
+export const useItemSuggestions = (clientId?: string) =>
+  useQuery({
+    queryKey: ['item-suggestions', clientId],
+    queryFn: () => invoicesApi.itemSuggestions(clientId),
+    enabled: true,
+  });
+
 // ─── Profile ──────────────────────────────────────────────────────────────────
 export const useUpdateProfile = () =>
   useMutation({
