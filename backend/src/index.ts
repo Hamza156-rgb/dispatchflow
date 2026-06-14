@@ -19,6 +19,10 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Behind Render's proxy — needed so rate-limiting/IP detection use the real
+// client IP (X-Forwarded-For) instead of lumping all traffic onto one proxy IP.
+app.set('trust proxy', 1);
+
 // Security middleware
 app.use(helmet());
 const isAllowedOrigin = (origin?: string) => {
@@ -33,10 +37,14 @@ app.use(cors({
   credentials: true,
 }));
 
-// Rate limiting
+// Rate limiting (per client IP). Skip the health check so uptime probes
+// (e.g. Render) are never throttled.
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100,
+  max: 300,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => req.path === '/health' || req.originalUrl === '/api/health',
   message: 'Too many requests from this IP, please try again later.',
 });
 app.use('/api/', limiter);
