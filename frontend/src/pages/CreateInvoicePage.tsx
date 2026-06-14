@@ -70,7 +70,7 @@ export default function CreateInvoicePage() {
         clientId: data.clientId,
         issueDate: data.issueDate,
         dueDate: data.dueDate,
-        taxRate: parseFloat(data.taxRate),
+        taxRate: parseFloat(data.taxRate) || 0,
         notes: data.notes,
         terms: data.terms,
         items: data.items.map(item => ({

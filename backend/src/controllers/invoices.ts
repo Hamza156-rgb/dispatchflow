@@ -76,7 +76,10 @@ export const getInvoice = async (req: Request, res: Response, next: NextFunction
 export const createInvoice = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = (req as any).userId;
-    const { clientId, issueDate, dueDate, items, taxRate = 0, notes, terms } = req.body;
+    const { clientId, issueDate, dueDate, items, notes, terms } = req.body;
+    // Coerce tax rate safely — an empty field arrives as null/NaN, which the
+    // non-nullable Decimal column would reject. Default to 0.
+    const taxRate = Number(req.body.taxRate) || 0;
 
     // Generate invoice number
     const count = await prisma.invoice.count({ where: { userId } });
