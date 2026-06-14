@@ -190,44 +190,67 @@ export const generatePDF = async (req: Request, res: Response, next: NextFunctio
     if (!invoice) return res.status(404).json({ error: 'Invoice not found' });
 
     const doc = new PDFDocument({ margin: 50 });
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="${invoice.invoiceNumber}.pdf"`);
-    doc.pipe(res);
+    // Buffer the PDF in memory so an image-render error can't leave the
+    // HTTP response hanging — we only send once generation fully succeeds.
+    const chunks: Buffer[] = [];
+    doc.on('data', (c: Buffer) => chunks.push(c));
+    doc.on('error', (e) => next(e));
+    doc.on('end', () => {
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${invoice.invoiceNumber}.pdf"`);
+      res.send(Buffer.concat(chunks));
+    });
+
+    // Company logo (optional) — decode the base64 data URL stored on the user
+    let logoBuf: Buffer | null = null;
+    if (invoice.user.logoUrl) {
+      const m = /^data:image\/(png|jpe?g);base64,(.+)$/i.exec(invoice.user.logoUrl);
+      if (m) { try { logoBuf = Buffer.from(m[2], 'base64'); } catch { logoBuf = null; } }
+    }
+    if (logoBuf) {
+      try { doc.image(logoBuf, 50, 45, { fit: [160, 55] }); } catch { /* bad image — skip */ }
+    }
+
+    // When a logo is shown, push the rest of the header down to make room.
+    const titleY = logoBuf ? 115 : 50;
 
     // Header
-    doc.fontSize(28).font('Helvetica-Bold').fillColor('#1a1a2e').text('INVOICE', 50, 50);
-    doc.fontSize(10).font('Helvetica').fillColor('#666').text(invoice.invoiceNumber, 50, 85);
+    doc.fontSize(28).font('Helvetica-Bold').fillColor('#1a1a2e').text('INVOICE', 50, titleY);
+    doc.fontSize(10).font('Helvetica').fillColor('#666').text(invoice.invoiceNumber, 50, titleY + 35);
 
     // Company info (right side)
     doc.fontSize(12).font('Helvetica-Bold').fillColor('#1a1a2e')
-      .text(invoice.user.companyName, 300, 50, { align: 'right' });
+      .text(invoice.user.companyName, 300, titleY, { align: 'right' });
     doc.fontSize(9).font('Helvetica').fillColor('#666')
-      .text(invoice.user.email, 300, 68, { align: 'right' })
-      .text(invoice.user.phoneNumber || '', 300, 82, { align: 'right' });
+      .text(invoice.user.email, 300, titleY + 18, { align: 'right' })
+      .text(invoice.user.phoneNumber || '', 300, titleY + 32, { align: 'right' });
 
     // Divider
-    doc.moveTo(50, 110).lineTo(545, 110).strokeColor('#e5e7eb').lineWidth(1).stroke();
+    const dividerY = titleY + 60;
+    doc.moveTo(50, dividerY).lineTo(545, dividerY).strokeColor('#e5e7eb').lineWidth(1).stroke();
 
     // Dates block
-    doc.fontSize(9).fillColor('#9ca3af').text('ISSUE DATE', 50, 125);
-    doc.fontSize(10).fillColor('#111').text(new Date(invoice.issueDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }), 50, 138);
+    const metaY = dividerY + 15;
+    doc.fontSize(9).fillColor('#9ca3af').text('ISSUE DATE', 50, metaY);
+    doc.fontSize(10).fillColor('#111').text(new Date(invoice.issueDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }), 50, metaY + 13);
 
-    doc.fontSize(9).fillColor('#9ca3af').text('DUE DATE', 200, 125);
-    doc.fontSize(10).fillColor('#111').text(new Date(invoice.dueDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }), 200, 138);
+    doc.fontSize(9).fillColor('#9ca3af').text('DUE DATE', 200, metaY);
+    doc.fontSize(10).fillColor('#111').text(new Date(invoice.dueDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }), 200, metaY + 13);
 
-    doc.fontSize(9).fillColor('#9ca3af').text('STATUS', 350, 125);
-    doc.fontSize(10).fillColor('#111').text(invoice.status, 350, 138);
+    doc.fontSize(9).fillColor('#9ca3af').text('STATUS', 350, metaY);
+    doc.fontSize(10).fillColor('#111').text(invoice.status, 350, metaY + 13);
 
     // Bill To
-    doc.fontSize(9).fillColor('#9ca3af').text('BILL TO', 50, 175);
-    doc.fontSize(11).font('Helvetica-Bold').fillColor('#111').text(invoice.client.companyName, 50, 188);
+    const billY = metaY + 50;
+    doc.fontSize(9).fillColor('#9ca3af').text('BILL TO', 50, billY);
+    doc.fontSize(11).font('Helvetica-Bold').fillColor('#111').text(invoice.client.companyName, 50, billY + 13);
     doc.fontSize(9).font('Helvetica').fillColor('#555')
-      .text(invoice.client.contactPerson, 50, 202)
-      .text(invoice.client.email, 50, 215)
-      .text(invoice.client.phone || '', 50, 228);
+      .text(invoice.client.contactPerson, 50, billY + 27)
+      .text(invoice.client.email, 50, billY + 40)
+      .text(invoice.client.phone || '', 50, billY + 53);
 
     // Items table header
-    const tableTop = 265;
+    const tableTop = billY + 90;
     doc.rect(50, tableTop, 495, 25).fillColor('#f3f4f6').fill();
     doc.fontSize(9).font('Helvetica-Bold').fillColor('#374151');
     doc.text('DESCRIPTION', 60, tableTop + 8);

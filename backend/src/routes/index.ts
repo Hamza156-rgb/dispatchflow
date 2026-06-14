@@ -144,11 +144,11 @@ profileRouter.use(authenticate);
 profileRouter.put('/', async (req, res, next) => {
   try {
     const userId = (req as any).userId;
-    const { fullName, companyName, phoneNumber, address, taxNumber } = req.body;
+    const { fullName, companyName, phoneNumber, address, taxNumber, logoUrl } = req.body;
     const user = await prisma.user.update({
       where: { id: userId },
-      data: { fullName, companyName, phoneNumber, address, taxNumber },
-      select: { id: true, fullName: true, email: true, companyName: true, phoneNumber: true, address: true, taxNumber: true },
+      data: { fullName, companyName, phoneNumber, address, taxNumber, logoUrl },
+      select: { id: true, fullName: true, email: true, companyName: true, phoneNumber: true, address: true, taxNumber: true, logoUrl: true },
     });
     res.json(user);
   } catch (err) { next(err); }

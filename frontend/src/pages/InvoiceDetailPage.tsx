@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useInvoice, useUpdateInvoice, useDeleteInvoice, useRecordPayment, useSendInvoiceEmail, useDownloadPdf } from '../hooks/useApi';
 import { Button, StatusBadge, Modal, FormField, Input, Select, Toast, Spinner } from '../components/ui';
 import { useMediaQuery } from '../hooks/useMediaQuery';
+import { useAuthStore } from '../store/authStore';
 
 const fmt = (n: number) => `$${Number(n).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
 
@@ -16,6 +17,7 @@ export default function InvoiceDetailPage() {
   const sendEmail = useSendInvoiceEmail();
   const downloadPdf = useDownloadPdf();
   const isMobile = useMediaQuery('(max-width: 768px)');
+  const companyLogo = useAuthStore((s) => s.user?.logoUrl);
 
   const [payModal, setPayModal] = useState(false);
   const [emailModal, setEmailModal] = useState(false);
@@ -88,6 +90,9 @@ export default function InvoiceDetailPage() {
             {/* Header */}
             <div style={{ background: '#0f172a', padding: isMobile ? '20px' : '28px 36px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
               <div>
+                {companyLogo && (
+                  <img src={companyLogo} alt="Company logo" style={{ maxHeight: 44, maxWidth: 180, objectFit: 'contain', marginBottom: 10, display: 'block' }} />
+                )}
                 <div style={{ fontSize: 30, fontWeight: 900, color: '#fff', letterSpacing: '-1px' }}>INVOICE</div>
                 <div style={{ color: '#60a5fa', fontWeight: 700, fontSize: 15, marginTop: 4 }}>{invoice.invoiceNumber}</div>
               </div>

@@ -186,4 +186,5 @@ export interface ProfilePayload {
   phoneNumber?: string;
   address?: string;
   taxNumber?: string;
+  logoUrl?: string | null;
 }
