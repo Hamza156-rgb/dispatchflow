@@ -42,13 +42,42 @@ export default function LoadsPage() {
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState('');
   const [search, setSearch] = useState('');
+  const [paymentStatus, setPaymentStatus] = useState('');
+  const [clientFilter, setClientFilter] = useState('');
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState<Load | null>(null);
   const [form, setForm] = useState<LoadPayload>(EMPTY);
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
 
-  const { data, isLoading } = useLoads({ page, limit: 20, status: status || undefined, search: search || undefined });
+  const { data, isLoading } = useLoads({
+    page, limit: 20,
+    status: status || undefined,
+    paymentStatus: paymentStatus || undefined,
+    clientId: clientFilter || undefined,
+    from: from || undefined,
+    to: to || undefined,
+    search: search || undefined,
+  });
+
+  const localDate = (x: Date) => `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`;
+  const applyPreset = (preset: 'today' | 'week' | 'month') => {
+    const now = new Date();
+    if (preset === 'today') { setFrom(localDate(now)); setTo(localDate(now)); }
+    else if (preset === 'week') {
+      const start = new Date(now); start.setDate(now.getDate() - now.getDay());
+      const end = new Date(start); end.setDate(start.getDate() + 6);
+      setFrom(localDate(start)); setTo(localDate(end));
+    } else {
+      setFrom(localDate(new Date(now.getFullYear(), now.getMonth(), 1)));
+      setTo(localDate(new Date(now.getFullYear(), now.getMonth() + 1, 0)));
+    }
+    setPage(1);
+  };
+  const hasFilters = !!(status || paymentStatus || clientFilter || from || to || search);
+  const clearFilters = () => { setStatus(''); setPaymentStatus(''); setClientFilter(''); setFrom(''); setTo(''); setSearch(''); setPage(1); };
   const { data: clientsData } = useClients({ limit: 200 });
   const createLoad = useCreateLoad();
   const updateLoad = useUpdateLoad();
@@ -101,6 +130,9 @@ export default function LoadsPage() {
 
   const th: React.CSSProperties = { padding: '12px 16px', fontSize: 11, fontWeight: 700, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap', textAlign: 'left' };
   const td: React.CSSProperties = { padding: '12px 16px', fontSize: 13, color: 'var(--color-text)', whiteSpace: 'nowrap' };
+  const filterLabel: React.CSSProperties = { fontSize: 10, fontWeight: 700, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 };
+  const dateStyle: React.CSSProperties = { padding: '9px 12px', borderRadius: 8, fontSize: 13, border: '1.5px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text)', outline: 'none', fontFamily: 'inherit' };
+  const presetBtn: React.CSSProperties = { padding: '9px 12px', borderRadius: 8, border: '1.5px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text)', cursor: 'pointer', fontWeight: 600, fontSize: 12, fontFamily: 'inherit', whiteSpace: 'nowrap' };
   const route = (l: Load) => `${[l.originCity, l.originState].filter(Boolean).join(', ') || '—'} → ${[l.destCity, l.destState].filter(Boolean).join(', ') || '—'}`;
   const perMile = (l: Load) => { const m = Number(l.miles || 0); return m > 0 ? `$${(Number(l.rate) / m).toFixed(2)}` : '—'; };
 
@@ -136,6 +168,41 @@ export default function LoadsPage() {
             </div>
           </div>
           <Button onClick={openNew}>+ New Load</Button>
+        </div>
+
+        {/* Filter bar */}
+        <div style={{ display: 'flex', gap: 14, alignItems: 'flex-end', padding: '12px 18px', borderBottom: '1px solid var(--color-border)', flexWrap: 'wrap', background: 'var(--color-surface)' }}>
+          <div>
+            <div style={filterLabel}>Pickup from</div>
+            <input type="date" value={from} onChange={(e) => { setFrom(e.target.value); setPage(1); }} style={dateStyle} />
+          </div>
+          <div>
+            <div style={filterLabel}>To</div>
+            <input type="date" value={to} onChange={(e) => { setTo(e.target.value); setPage(1); }} style={dateStyle} />
+          </div>
+          <div style={{ display: 'flex', gap: 6 }}>
+            {([['today', 'Today'], ['week', 'This Week'], ['month', 'This Month']] as const).map(([p, label]) => (
+              <button key={p} onClick={() => applyPreset(p)} style={presetBtn}>{label}</button>
+            ))}
+          </div>
+          <div style={{ width: 140 }}>
+            <div style={filterLabel}>Payment</div>
+            <Select value={paymentStatus} onChange={(e) => { setPaymentStatus(e.target.value); setPage(1); }}>
+              <option value="">All</option>
+              <option value="UNPAID">Unpaid</option>
+              <option value="PAID">Paid</option>
+            </Select>
+          </div>
+          <div style={{ width: 180 }}>
+            <div style={filterLabel}>Client</div>
+            <Select value={clientFilter} onChange={(e) => { setClientFilter(e.target.value); setPage(1); }}>
+              <option value="">All clients</option>
+              {clientsData?.clients.map((c: any) => <option key={c.id} value={c.id}>{c.companyName}</option>)}
+            </Select>
+          </div>
+          {hasFilters && (
+            <button onClick={clearFilters} style={{ padding: '9px 14px', borderRadius: 8, border: '1.5px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-muted)', cursor: 'pointer', fontWeight: 600, fontSize: 13, fontFamily: 'inherit' }}>✕ Clear</button>
+          )}
         </div>
 
         {isLoading ? <Spinner /> : !data?.loads.length ? (

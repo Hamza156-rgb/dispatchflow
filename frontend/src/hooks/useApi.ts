@@ -155,7 +155,7 @@ export const useItemSuggestions = (clientId?: string) =>
   });
 
 // ─── Loads ────────────────────────────────────────────────────────────────────
-export const useLoads = (params?: { page?: number; limit?: number; status?: string; paymentStatus?: string; clientId?: string; search?: string }) =>
+export const useLoads = (params?: { page?: number; limit?: number; status?: string; paymentStatus?: string; clientId?: string; search?: string; from?: string; to?: string }) =>
   useQuery({
     queryKey: ['loads', params],
     queryFn: () => loadsApi.list(params),

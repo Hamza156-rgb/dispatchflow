@@ -11,12 +11,18 @@ const toDate = (v: any) => (v ? new Date(v) : null);
 export const getLoads = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = (req as any).userId;
-    const { page = 1, limit = 20, status, paymentStatus, clientId, search } = req.query;
+    const { page = 1, limit = 20, status, paymentStatus, clientId, search, from, to } = req.query;
 
     const where: any = { userId };
     if (status) where.status = status as LoadStatus;
     if (paymentStatus) where.paymentStatus = paymentStatus as LoadPaymentStatus;
     if (clientId) where.clientId = clientId as string;
+    // Pickup-date range filter (calendar)
+    if (from || to) {
+      where.pickupAt = {};
+      if (from) where.pickupAt.gte = new Date(from as string);
+      if (to) { const end = new Date(to as string); end.setHours(23, 59, 59, 999); where.pickupAt.lte = end; }
+    }
     if (search) {
       where.OR = [
         { loadNumber: { contains: search as string, mode: 'insensitive' } },
