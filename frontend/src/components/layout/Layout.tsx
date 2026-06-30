@@ -9,10 +9,17 @@ export default function Layout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem('df_dark') === 'true');
-  const { logout } = useAuthStore();
+  const { logout, user } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
   const isMobile = useMediaQuery('(max-width: 768px)');
+
+  // Super admins only manage tenants — keep them on the admin panel.
+  useEffect(() => {
+    if (user?.isSuperAdmin && location.pathname !== '/admin') {
+      navigate('/admin', { replace: true });
+    }
+  }, [user?.isSuperAdmin, location.pathname, navigate]);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : 'light');

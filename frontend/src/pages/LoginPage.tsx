@@ -27,7 +27,7 @@ export default function LoginPage() {
     try {
       const { user, token } = await authApi.login(data);
       setAuth(user, token);
-      navigate('/dashboard');
+      navigate(user.isSuperAdmin ? '/admin' : '/dashboard');
     } catch (err: any) {
       setError(err.response?.data?.error || 'Login failed. Please try again.');
     } finally {

@@ -8,7 +8,7 @@ const prisma = new PrismaClient();
 export const listOrganizations = async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const owners = await prisma.user.findMany({
-      where: { ownerId: null },
+      where: { ownerId: null, isSuperAdmin: false },
       select: { id: true, fullName: true, email: true, companyName: true, plan: true, accountStatus: true, isSuperAdmin: true, createdAt: true },
       orderBy: { createdAt: 'desc' },
     });

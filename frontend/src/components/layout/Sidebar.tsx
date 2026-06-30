@@ -97,7 +97,7 @@ export default function Sidebar({ collapsed, onCollapse, mobile = false, open = 
 
       {/* Nav */}
       <nav style={{ flex: 1, padding: '10px 8px' }}>
-        {(user?.isSuperAdmin ? [...NAV, ADMIN_NAV] : NAV).map(item => (
+        {(user?.isSuperAdmin ? [ADMIN_NAV] : NAV).map(item => (
           <NavLink key={item.to} to={item.to}
             onClick={onNavigate}
             title={isCollapsed ? item.label : undefined}
