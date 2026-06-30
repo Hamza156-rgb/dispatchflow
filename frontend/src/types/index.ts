@@ -8,6 +8,7 @@ export interface User {
   address?: string;
   logoUrl?: string;
   taxNumber?: string;
+  plan?: string;
   createdAt: string;
 }
 
@@ -27,6 +28,7 @@ export interface RegisterPayload {
   password: string;
   companyName: string;
   phoneNumber?: string;
+  plan?: 'STARTER' | 'GROWTH' | 'BUSINESS';
 }
 
 // ─── Client ───────────────────────────────────────────────────────────────────

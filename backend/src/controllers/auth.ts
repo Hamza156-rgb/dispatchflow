@@ -13,6 +13,7 @@ const registerSchema = z.object({
   password: z.string().min(8),
   companyName: z.string().min(2).max(200),
   phoneNumber: z.string().optional(),
+  plan: z.enum(['STARTER', 'GROWTH', 'BUSINESS']).optional(),
 });
 
 const loginSchema = z.object({
@@ -42,7 +43,7 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
       },
       select: {
         id: true, fullName: true, email: true,
-        companyName: true, phoneNumber: true, createdAt: true,
+        companyName: true, phoneNumber: true, plan: true, createdAt: true,
       },
     });
 
@@ -107,7 +108,7 @@ export const getMe = async (req: Request, res: Response, next: NextFunction) => 
       select: {
         id: true, fullName: true, email: true,
         companyName: true, phoneNumber: true,
-        logoUrl: true, address: true, taxNumber: true, createdAt: true,
+        logoUrl: true, address: true, taxNumber: true, plan: true, createdAt: true,
       },
     });
     res.json(user);

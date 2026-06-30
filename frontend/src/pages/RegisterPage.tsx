@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { authApi } from '../lib/api';
 import { useAuthStore } from '../store/authStore';
@@ -14,6 +14,12 @@ interface RegisterForm {
   phoneNumber?: string;
 }
 
+const PLANS = [
+  { id: 'STARTER', name: 'Starter', price: 5, users: 5 },
+  { id: 'GROWTH', name: 'Growth', price: 10, users: 10 },
+  { id: 'BUSINESS', name: 'Business', price: 20, users: 20 },
+] as const;
+
 export default function RegisterPage() {
   const { register, handleSubmit, formState: { errors } } = useForm<RegisterForm>();
   const [loading, setLoading] = useState(false);
@@ -21,12 +27,17 @@ export default function RegisterPage() {
   const { setAuth } = useAuthStore();
   const navigate = useNavigate();
   const isMobile = useMediaQuery('(max-width: 768px)');
+  const [params] = useSearchParams();
+
+  const initial = (params.get('plan') || '').toUpperCase();
+  const [plan, setPlan] = useState(PLANS.some((p) => p.id === initial) ? initial : 'GROWTH');
+  const selected = PLANS.find((p) => p.id === plan)!;
 
   const onSubmit = async (data: RegisterForm) => {
     setLoading(true);
     setError('');
     try {
-      const { user, token } = await authApi.register(data);
+      const { user, token } = await authApi.register({ ...data, plan });
       setAuth(user, token);
       navigate('/dashboard');
     } catch (err: any) {
@@ -39,12 +50,12 @@ export default function RegisterPage() {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center',
       justifyContent: 'center', background: '#f8fafc', padding: isMobile ? 16 : 24 }}>
-      <div style={{ width: '100%', maxWidth: 520, background: '#fff', borderRadius: isMobile ? 16 : 20,
+      <div style={{ width: '100%', maxWidth: 560, background: '#fff', borderRadius: isMobile ? 16 : 20,
         border: '1.5px solid #e2e8f0', padding: isMobile ? '28px 22px' : '40px 44px',
         boxShadow: '0 4px 40px rgba(0,0,0,0.06)' }}>
 
         {/* Logo */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 32 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 28 }}>
           <div style={{ width: 40, height: 40, borderRadius: 10, background: '#2563eb',
             display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>🚛</div>
           <span style={{ fontWeight: 900, fontSize: 20, letterSpacing: '-0.5px', color: '#0f172a' }}>
@@ -55,7 +66,7 @@ export default function RegisterPage() {
         <h3 style={{ fontSize: 22, fontWeight: 800, color: '#0f172a', margin: '0 0 6px' }}>
           Create your account
         </h3>
-        <p style={{ color: '#64748b', fontSize: 14, margin: '0 0 28px' }}>
+        <p style={{ color: '#64748b', fontSize: 14, margin: '0 0 24px' }}>
           Start managing your dispatch business today.
         </p>
 
@@ -65,6 +76,32 @@ export default function RegisterPage() {
             ⚠️ {error}
           </div>
         )}
+
+        {/* Plan selector */}
+        <div style={{ marginBottom: 22 }}>
+          <label style={{ display: 'block', marginBottom: 8, fontSize: 12, fontWeight: 700,
+            color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Choose your plan</label>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+            {PLANS.map((p) => {
+              const active = plan === p.id;
+              return (
+                <button key={p.id} type="button" onClick={() => setPlan(p.id)}
+                  style={{
+                    textAlign: 'center', cursor: 'pointer', borderRadius: 12, padding: '14px 8px', fontFamily: 'inherit',
+                    border: active ? '2px solid #2563eb' : '1.5px solid #e2e8f0',
+                    background: active ? '#eff6ff' : '#fff', transition: 'all 0.15s',
+                  }}>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: '#0f172a' }}>{p.name}</div>
+                  <div style={{ fontSize: 20, fontWeight: 900, color: active ? '#2563eb' : '#0f172a', marginTop: 4 }}>${p.price}<span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600 }}>/mo</span></div>
+                  <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>{p.users} users</div>
+                </button>
+              );
+            })}
+          </div>
+          <p style={{ margin: '10px 0 0', fontSize: 12, color: '#64748b' }}>
+            Selected: <strong>{selected.name}</strong> — ${selected.price}/mo, up to {selected.users} team members.
+          </p>
+        </div>
 
         <form onSubmit={handleSubmit(onSubmit)}>
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16 }}>
@@ -95,7 +132,7 @@ export default function RegisterPage() {
           </FormField>
 
           <Button type="submit" loading={loading} style={{ width: '100%', marginTop: 8 }} size="lg">
-            {loading ? 'Creating account…' : 'Create Account — Free'}
+            {loading ? 'Creating account…' : `Create account — ${selected.name} plan`}
           </Button>
         </form>
 

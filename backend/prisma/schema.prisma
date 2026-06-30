@@ -22,6 +22,7 @@ model User {
   taxNumber   String?
   resetToken  String?
   resetTokenExpiry DateTime?
+  plan        String   @default("STARTER")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

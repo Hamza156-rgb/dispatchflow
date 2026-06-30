@@ -28,7 +28,7 @@ export default function LandingPage() {
   const { token } = useAuthStore();
   const isMobile = useMediaQuery('(max-width: 820px)');
   const go = (path: string) => navigate(path);
-  const primary = token ? { label: 'Go to Dashboard', to: '/dashboard' } : { label: 'Start free', to: '/register' };
+  const primary = token ? { label: 'Go to Dashboard', to: '/dashboard' } : { label: 'Get started', to: '/register' };
 
   const container: React.CSSProperties = { maxWidth: 1140, margin: '0 auto', padding: isMobile ? '0 20px' : '0 32px' };
   const sectionPad = isMobile ? '64px 0' : '96px 0';
@@ -153,11 +153,11 @@ export default function LandingPage() {
                 <div style={{ display: 'inline-block', background: p.popular ? 'rgba(96,165,250,0.18)' : '#eff6ff', color: p.popular ? '#93c5fd' : BLUE, padding: '5px 12px', borderRadius: 8, fontSize: 13, fontWeight: 800, marginBottom: 22 }}>
                   Up to {p.users} users
                 </div>
-                <button onClick={() => go(primary.to)} style={{
+                <button onClick={() => go(token ? '/dashboard' : `/register?plan=${p.name.toUpperCase()}`)} style={{
                   width: '100%', padding: '13px', borderRadius: 11, fontWeight: 800, fontSize: 15, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 22,
                   border: p.popular ? 'none' : `1.5px solid ${BLUE}`,
                   background: p.popular ? BLUE : '#fff', color: p.popular ? '#fff' : BLUE,
-                }}>Get started</button>
+                }}>Choose {p.name}</button>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   {p.perks.map((perk) => (
                     <div key={perk} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 14 }}>
