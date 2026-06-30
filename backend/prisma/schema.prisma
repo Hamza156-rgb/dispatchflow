@@ -23,6 +23,11 @@ model User {
   resetToken  String?
   resetTokenExpiry DateTime?
   plan        String   @default("STARTER")
+  // Multi-tenant + roles
+  ownerId       String?   // null = org owner; set = team member belonging to that owner
+  role          String    @default("OWNER")   // OWNER | MEMBER
+  isSuperAdmin  Boolean   @default(false)
+  accountStatus String    @default("ACTIVE")  // PENDING | ACTIVE | SUSPENDED (on the owner)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -31,6 +36,7 @@ model User {
   loads       Load[]
 
   @@index([email])
+  @@index([ownerId])
 }
 
 model Client {

@@ -11,6 +11,8 @@ import {
   reportsRouter,
   profileRouter,
   loadsRouter,
+  teamRouter,
+  adminRouter,
 } from './routes';
 import { errorHandler } from './middleware/errorHandler';
 import { logger } from './utils/logger';
@@ -62,6 +64,8 @@ app.use('/api/payments', paymentsRouter);
 app.use('/api/reports', reportsRouter);
 app.use('/api/profile', profileRouter);
 app.use('/api/loads', loadsRouter);
+app.use('/api/team', teamRouter);
+app.use('/api/admin', adminRouter);
 
 // Health check
 app.get('/api/health', (req, res) => {

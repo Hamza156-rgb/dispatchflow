@@ -14,10 +14,17 @@ import InsightsPage from './pages/InsightsPage';
 import LoadsPage from './pages/LoadsPage';
 import SettingsPage from './pages/SettingsPage';
 import LandingPage from './pages/LandingPage';
+import TeamPage from './pages/TeamPage';
+import AdminPage from './pages/AdminPage';
+import AccountGate from './pages/AccountGate';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { token } = useAuthStore();
+  const { token, user } = useAuthStore();
   if (!token) return <Navigate to="/login" replace />;
+  // Gate non-active workspaces (super admins always pass)
+  if (user && !user.isSuperAdmin && user.accountStatus && user.accountStatus !== 'ACTIVE') {
+    return <AccountGate status={user.accountStatus as 'PENDING' | 'SUSPENDED'} />;
+  }
   return <>{children}</>;
 }
 
@@ -46,6 +53,8 @@ export default function App() {
         <Route path="/invoices/:id" element={<InvoiceDetailPage />} />
         <Route path="/reports" element={<ReportsPage />} />
         <Route path="/insights" element={<InsightsPage />} />
+        <Route path="/team" element={<TeamPage />} />
+        <Route path="/admin" element={<AdminPage />} />
         <Route path="/settings" element={<SettingsPage />} />
       </Route>
 

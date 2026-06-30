@@ -1,7 +1,10 @@
 // routes/clients.ts
 import { Router } from 'express';
 import { PrismaClient } from '@prisma/client';
-import { authenticate } from '../middleware/errorHandler';
+import { authenticate, requireSuperAdmin } from '../middleware/errorHandler';
+import { buildMe } from '../controllers/auth';
+import { getTeam, addMember, removeMember } from '../controllers/team';
+import { listOrganizations, updateOrganization } from '../controllers/admin';
 
 const prisma = new PrismaClient();
 export const clientsRouter = Router();
@@ -9,7 +12,7 @@ clientsRouter.use(authenticate);
 
 clientsRouter.get('/', async (req, res, next) => {
   try {
-    const userId = (req as any).userId;
+    const userId = (req as any).tenantId;
     const { page = 1, limit = 20, search, sortBy = 'companyName' } = req.query;
     const where: any = { userId };
     if (search) {
@@ -35,7 +38,7 @@ clientsRouter.get('/', async (req, res, next) => {
 
 clientsRouter.get('/:id', async (req, res, next) => {
   try {
-    const userId = (req as any).userId;
+    const userId = (req as any).tenantId;
     const client = await prisma.client.findFirst({
       where: { id: req.params.id, userId },
       include: {
@@ -52,7 +55,7 @@ clientsRouter.get('/:id', async (req, res, next) => {
 
 clientsRouter.post('/', async (req, res, next) => {
   try {
-    const userId = (req as any).userId;
+    const userId = (req as any).tenantId;
     const client = await prisma.client.create({ data: { ...req.body, userId } });
     res.status(201).json(client);
   } catch (err) { next(err); }
@@ -60,7 +63,7 @@ clientsRouter.post('/', async (req, res, next) => {
 
 clientsRouter.put('/:id', async (req, res, next) => {
   try {
-    const userId = (req as any).userId;
+    const userId = (req as any).tenantId;
     const existing = await prisma.client.findFirst({ where: { id: req.params.id, userId } });
     if (!existing) return res.status(404).json({ error: 'Client not found' });
     const client = await prisma.client.update({
@@ -73,7 +76,7 @@ clientsRouter.put('/:id', async (req, res, next) => {
 
 clientsRouter.delete('/:id', async (req, res, next) => {
   try {
-    const userId = (req as any).userId;
+    const userId = (req as any).tenantId;
     const existing = await prisma.client.findFirst({ where: { id: req.params.id, userId } });
     if (!existing) return res.status(404).json({ error: 'Client not found' });
     await prisma.client.delete({ where: { id: req.params.id } });
@@ -104,7 +107,7 @@ paymentsRouter.use(authenticate);
 paymentsRouter.post('/', async (req, res, next) => {
   try {
     const { invoiceId, amount, paymentDate, paymentMethod, referenceNumber, notes } = req.body;
-    const userId = (req as any).userId;
+    const userId = (req as any).tenantId;
 
     const invoice = await prisma.invoice.findFirst({
       where: { id: invoiceId, userId },
@@ -154,13 +157,27 @@ profileRouter.use(authenticate);
 
 profileRouter.put('/', async (req, res, next) => {
   try {
-    const userId = (req as any).userId;
+    const selfId = (req as any).userId;
+    const tenantId = (req as any).tenantId;
     const { fullName, companyName, phoneNumber, address, taxNumber, logoUrl } = req.body;
-    const user = await prisma.user.update({
-      where: { id: userId },
-      data: { fullName, companyName, phoneNumber, address, taxNumber, logoUrl },
-      select: { id: true, fullName: true, email: true, companyName: true, phoneNumber: true, address: true, taxNumber: true, logoUrl: true },
-    });
-    res.json(user);
+    // Personal fields → the logged-in user
+    await prisma.user.update({ where: { id: selfId }, data: { fullName, phoneNumber } });
+    // Company / branding fields → the workspace owner (shared across the org)
+    await prisma.user.update({ where: { id: tenantId }, data: { companyName, address, taxNumber, logoUrl } });
+    const me = await buildMe(selfId);
+    res.json(me);
   } catch (err) { next(err); }
 });
+
+// routes/team.ts — workspace members (owner manages)
+export const teamRouter = IRouter();
+teamRouter.use(authenticate);
+teamRouter.get('/', getTeam);
+teamRouter.post('/', addMember);
+teamRouter.delete('/:id', removeMember);
+
+// routes/admin.ts — super-admin only
+export const adminRouter = IRouter();
+adminRouter.use(authenticate, requireSuperAdmin);
+adminRouter.get('/organizations', listOrganizations);
+adminRouter.put('/organizations/:id', updateOrganization);

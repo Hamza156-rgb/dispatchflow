@@ -10,7 +10,7 @@ const toDate = (v: any) => (v ? new Date(v) : null);
 // GET /api/loads — paginated list + summary across all loads
 export const getLoads = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const userId = (req as any).userId;
+    const userId = (req as any).tenantId;
     const { page = 1, limit = 20, status, paymentStatus, clientId, search, from, to } = req.query;
 
     const where: any = { userId };
@@ -63,7 +63,7 @@ export const getLoads = async (req: Request, res: Response, next: NextFunction) 
 
 export const getLoad = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const userId = (req as any).userId;
+    const userId = (req as any).tenantId;
     const load = await prisma.load.findFirst({
       where: { id: req.params.id, userId },
       include: { client: true },
@@ -77,7 +77,7 @@ export const getLoad = async (req: Request, res: Response, next: NextFunction) =
 
 export const createLoad = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const userId = (req as any).userId;
+    const userId = (req as any).tenantId;
     const b = req.body;
 
     if (!b.clientId) return res.status(400).json({ error: 'Client is required' });
@@ -118,7 +118,7 @@ export const createLoad = async (req: Request, res: Response, next: NextFunction
 
 export const updateLoad = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const userId = (req as any).userId;
+    const userId = (req as any).tenantId;
     const { id } = req.params;
     const b = req.body;
 
@@ -150,7 +150,7 @@ export const updateLoad = async (req: Request, res: Response, next: NextFunction
 
 export const deleteLoad = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const userId = (req as any).userId;
+    const userId = (req as any).tenantId;
     const existing = await prisma.load.findFirst({ where: { id: req.params.id, userId } });
     if (!existing) return res.status(404).json({ error: 'Load not found' });
     await prisma.load.delete({ where: { id: req.params.id } });

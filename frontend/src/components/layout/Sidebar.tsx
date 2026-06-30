@@ -19,8 +19,11 @@ const NAV = [
   { to: '/invoices', label: 'Invoices', icon: '📄' },
   { to: '/reports', label: 'Reports', icon: '📈' },
   { to: '/insights', label: 'Insights', icon: '✨' },
+  { to: '/team', label: 'Team', icon: '👥' },
   { to: '/settings', label: 'Settings', icon: '⚙️' },
 ];
+
+const ADMIN_NAV = { to: '/admin', label: 'Super Admin', icon: '🛡️' };
 
 function Avatar({ name, size = 32 }: { name: string; size?: number }) {
   const initials = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
@@ -94,7 +97,7 @@ export default function Sidebar({ collapsed, onCollapse, mobile = false, open = 
 
       {/* Nav */}
       <nav style={{ flex: 1, padding: '10px 8px' }}>
-        {NAV.map(item => (
+        {(user?.isSuperAdmin ? [...NAV, ADMIN_NAV] : NAV).map(item => (
           <NavLink key={item.to} to={item.to}
             onClick={onNavigate}
             title={isCollapsed ? item.label : undefined}

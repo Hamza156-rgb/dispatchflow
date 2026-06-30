@@ -17,6 +17,8 @@ const PAGE_TITLES: Record<string, string> = {
   '/invoices/new': 'Create Invoice',
   '/reports': 'Reports',
   '/insights': 'Smart Insights',
+  '/team': 'Team',
+  '/admin': 'Super Admin',
   '/settings': 'Settings',
 };
 

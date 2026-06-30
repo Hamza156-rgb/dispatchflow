@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
 
 export const getInvoices = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const userId = (req as any).userId;
+    const userId = (req as any).tenantId;
     const { page = 1, limit = 20, status, clientId, search } = req.query;
 
     const where: any = { userId };
@@ -51,7 +51,7 @@ export const getInvoices = async (req: Request, res: Response, next: NextFunctio
 
 export const getInvoice = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const userId = (req as any).userId;
+    const userId = (req as any).tenantId;
     const { id } = req.params;
 
     const invoice = await prisma.invoice.findFirst({
@@ -75,7 +75,7 @@ export const getInvoice = async (req: Request, res: Response, next: NextFunction
 
 export const createInvoice = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const userId = (req as any).userId;
+    const userId = (req as any).tenantId;
     const { clientId, issueDate, dueDate, items, notes, terms } = req.body;
     // Coerce tax rate safely — an empty field arrives as null/NaN, which the
     // non-nullable Decimal column would reject. Default to 0.
@@ -121,7 +121,7 @@ export const createInvoice = async (req: Request, res: Response, next: NextFunct
 
 export const updateInvoice = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const userId = (req as any).userId;
+    const userId = (req as any).tenantId;
     const { id } = req.params;
     const { items, taxRate, ...rest } = req.body;
 
@@ -167,7 +167,7 @@ export const updateInvoice = async (req: Request, res: Response, next: NextFunct
 
 export const deleteInvoice = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const userId = (req as any).userId;
+    const userId = (req as any).tenantId;
     const { id } = req.params;
 
     const existing = await prisma.invoice.findFirst({ where: { id, userId } });
@@ -182,7 +182,7 @@ export const deleteInvoice = async (req: Request, res: Response, next: NextFunct
 
 export const generatePDF = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const userId = (req as any).userId;
+    const userId = (req as any).tenantId;
     const { id } = req.params;
 
     const invoice = await prisma.invoice.findFirst({
@@ -305,7 +305,7 @@ export const generatePDF = async (req: Request, res: Response, next: NextFunctio
 
 export const sendInvoiceEmail = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const userId = (req as any).userId;
+    const userId = (req as any).tenantId;
     const { id } = req.params;
     const { message } = req.body;
 
@@ -356,7 +356,7 @@ export const sendInvoiceEmail = async (req: Request, res: Response, next: NextFu
 // Smart line-item suggestions from past invoices (this client first, then all)
 export const getItemSuggestions = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const userId = (req as any).userId;
+    const userId = (req as any).tenantId;
     const { clientId } = req.query;
 
     const items = await prisma.invoiceItem.findMany({

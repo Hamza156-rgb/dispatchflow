@@ -9,6 +9,10 @@ export interface User {
   logoUrl?: string;
   taxNumber?: string;
   plan?: string;
+  role?: 'OWNER' | 'MEMBER';
+  isSuperAdmin?: boolean;
+  accountStatus?: 'PENDING' | 'ACTIVE' | 'SUSPENDED';
+  maxUsers?: number;
   createdAt: string;
 }
 

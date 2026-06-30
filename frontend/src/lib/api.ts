@@ -81,6 +81,19 @@ export const profileApi = {
   update: (data: any) => api.put('/profile', data).then(r => r.data),
 };
 
+// ─── Team (workspace members) ───────────────────────────────────────────────────
+export const teamApi = {
+  list: () => api.get('/team').then(r => r.data),
+  add: (data: any) => api.post('/team', data).then(r => r.data),
+  remove: (id: string) => api.delete(`/team/${id}`).then(r => r.data),
+};
+
+// ─── Super Admin ────────────────────────────────────────────────────────────────
+export const adminApi = {
+  organizations: () => api.get('/admin/organizations').then(r => r.data),
+  updateOrg: (id: string, data: any) => api.put(`/admin/organizations/${id}`, data).then(r => r.data),
+};
+
 // ─── PDF Download Helper ──────────────────────────────────────────────────────
 export const downloadInvoicePdf = async (invoiceId: string, invoiceNumber: string) => {
   const blob = await invoicesApi.downloadPdf(invoiceId);

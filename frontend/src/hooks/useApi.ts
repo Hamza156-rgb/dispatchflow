@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { clientsApi, invoicesApi, paymentsApi, reportsApi, profileApi, loadsApi, downloadInvoicePdf } from '../lib/api';
+import { clientsApi, invoicesApi, paymentsApi, reportsApi, profileApi, loadsApi, teamApi, adminApi, downloadInvoicePdf } from '../lib/api';
 import type { ClientPayload, CreateInvoicePayload, PaymentPayload, ProfilePayload, LoadPayload } from '../types';
 
 // ─── Query Keys ───────────────────────────────────────────────────────────────
@@ -182,6 +182,38 @@ export const useDeleteLoad = () => {
   return useMutation({
     mutationFn: (id: string) => loadsApi.delete(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['loads'] }),
+  });
+};
+
+// ─── Team ─────────────────────────────────────────────────────────────────────
+export const useTeam = () =>
+  useQuery({ queryKey: ['team'], queryFn: () => teamApi.list() });
+
+export const useAddMember = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) => teamApi.add(data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['team'] }),
+  });
+};
+
+export const useRemoveMember = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => teamApi.remove(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['team'] }),
+  });
+};
+
+// ─── Super Admin ──────────────────────────────────────────────────────────────
+export const useOrganizations = () =>
+  useQuery({ queryKey: ['admin', 'organizations'], queryFn: () => adminApi.organizations() });
+
+export const useUpdateOrganization = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) => adminApi.updateOrg(id, data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'organizations'] }),
   });
 };
 
