@@ -45,24 +45,38 @@ export default function AdminPage() {
     <div style={{ padding: isMobile ? 16 : 28 }}>
       {toast && <Toast message={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
 
-      <div style={{ marginBottom: 22 }}>
-        <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: 'var(--color-text)' }}>🛡️ Super Admin</h2>
-        <p style={{ margin: '4px 0 0', color: 'var(--color-muted)', fontSize: 14 }}>Manage every organization — plans, activation, and suspension.</p>
+      {/* Header with gradient accent */}
+      <div style={{ borderRadius: 18, padding: isMobile ? '22px 20px' : '26px 28px', marginBottom: 22,
+        background: 'radial-gradient(600px 200px at 90% -20%, rgba(124,58,237,0.35), transparent), #0b1220', color: '#fff' }}>
+        <h2 style={{ margin: 0, fontSize: 22, fontWeight: 900, letterSpacing: '-0.5px' }}>🛡️ Super Admin Console</h2>
+        <p style={{ margin: '6px 0 0', color: '#94a3b8', fontSize: 14 }}>Manage every organization — plans, activation, suspension, and revenue.</p>
       </div>
 
       {/* Summary */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px,1fr))', gap: 16, marginBottom: 22 }}>
-        {[['🏢', 'Organizations', orgs.length], ['✅', 'Active', activeCount], ['⏳', 'Pending', pendingCount], ['💵', 'Your MRR', fmtMoney(totalMrr)], ['👥', 'Total Users', totalUsers]].map(([i, l, v]) => (
-          <div key={l as string} style={{ background: 'var(--color-bg)', borderRadius: 14, border: '1.5px solid var(--color-border)', padding: '18px 20px' }}>
-            <div style={{ fontSize: 18 }}>{i}</div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: 6 }}>{l}</div>
-            <div style={{ fontSize: 24, fontWeight: 900, color: l === 'Your MRR' ? '#16a34a' : 'var(--color-text)', marginTop: 2 }}>{v}</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px,1fr))', gap: 16, marginBottom: 22 }}>
+        {[
+          { icon: '🏢', label: 'Organizations', value: orgs.length, bg: '#e0e7ff', accent: 'var(--color-text)' },
+          { icon: '✅', label: 'Active', value: activeCount, bg: '#dcfce7', accent: '#16a34a' },
+          { icon: '⏳', label: 'Pending', value: pendingCount, bg: '#fef3c7', accent: '#b45309' },
+          { icon: '💵', label: 'Your MRR', value: fmtMoney(totalMrr), bg: '#dcfce7', accent: '#16a34a' },
+          { icon: '👥', label: 'Total Users', value: totalUsers, bg: '#dbeafe', accent: 'var(--color-text)' },
+        ].map((c) => (
+          <div key={c.label} style={{ background: 'var(--color-bg)', borderRadius: 16, border: '1.5px solid var(--color-border)', padding: '18px 20px', display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{ width: 46, height: 46, borderRadius: 12, background: c.bg, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>{c.icon}</div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{c.label}</div>
+              <div style={{ fontSize: 24, fontWeight: 900, color: c.accent, marginTop: 3, whiteSpace: 'nowrap' }}>{c.value}</div>
+            </div>
           </div>
         ))}
       </div>
 
       {isLoading ? <Spinner /> : (
         <div style={{ background: 'var(--color-bg)', borderRadius: 16, border: '1.5px solid var(--color-border)', overflow: 'hidden' }}>
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <h3 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: 'var(--color-text)' }}>All Organizations</h3>
+            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-muted)', background: 'var(--color-surface)', padding: '4px 10px', borderRadius: 20 }}>{orgs.length} total</span>
+          </div>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', minWidth: 1200, borderCollapse: 'collapse' }}>
               <thead>
@@ -80,10 +94,12 @@ export default function AdminPage() {
               </thead>
               <tbody>
                 {orgs.map((o: any) => (
-                  <tr key={o.id} style={{ borderBottom: '1px solid var(--color-border)', opacity: busyId === o.id ? 0.5 : 1 }}>
+                  <tr key={o.id} style={{ borderBottom: '1px solid var(--color-border)', opacity: busyId === o.id ? 0.5 : 1, transition: 'background 0.15s' }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--color-surface)')}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
                     <td style={td}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <Avatar name={o.companyName || o.email} size={32} />
+                        <Avatar name={o.companyName || o.email} size={38} />
                         <div>
                           <div style={{ fontWeight: 700, fontSize: 14 }}>{o.companyName || '—'} {o.isSuperAdmin && <span style={{ fontSize: 11, color: '#7c3aed' }}>★ admin</span>}</div>
                           <div style={{ fontSize: 12, color: 'var(--color-muted)' }}>{o.fullName} · {o.email}</div>
@@ -91,8 +107,17 @@ export default function AdminPage() {
                         </div>
                       </div>
                     </td>
-                    <td style={{ ...td, color: 'var(--color-muted)' }}>{o.userCount} / {o.limit}</td>
-                    <td style={{ ...td, color: 'var(--color-muted)' }}>{o.clients}c · {o.invoices}i · {o.loads}L</td>
+                    <td style={{ ...td }}>
+                      <span style={{ fontWeight: 700 }}>{o.userCount}</span>
+                      <span style={{ color: 'var(--color-muted)' }}> / {o.limit}</span>
+                    </td>
+                    <td style={td}>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        {[[o.clients, 'clients'], [o.invoices, 'inv'], [o.loads, 'loads']].map(([n, l]) => (
+                          <span key={l as string} style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-muted)', background: 'var(--color-surface)', padding: '3px 8px', borderRadius: 6, whiteSpace: 'nowrap' }}>{n as number} {l}</span>
+                        ))}
+                      </div>
+                    </td>
                     <td style={{ ...td, textAlign: 'right', fontWeight: 700, color: '#16a34a' }}>{fmtMoney(o.revenue)}</td>
                     <td style={{ ...td, textAlign: 'right', fontWeight: 700 }}>{fmtMoney(o.mrr)}</td>
                     <td style={td}>
