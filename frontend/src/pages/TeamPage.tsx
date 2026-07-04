@@ -115,7 +115,8 @@ export default function TeamPage() {
       {/* Add member modal */}
       <Modal open={modal} onClose={() => setModal(false)} title="Add team member" width={460}>
         <p style={{ margin: '0 0 18px', fontSize: 13, color: 'var(--color-muted)' }}>
-          They'll sign in with this email and password and share your workspace data.
+          They'll sign in with this email and password and manage their own clients, loads,
+          and invoices under your company brand.
         </p>
         <FormField label="Full Name" required><Input value={form.fullName} onChange={(e) => setForm((f) => ({ ...f, fullName: e.target.value }))} placeholder="Jane Doe" /></FormField>
         <FormField label="Email" required><Input type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} placeholder="jane@company.com" /></FormField>

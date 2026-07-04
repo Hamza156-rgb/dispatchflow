@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
 
 export const getInvoices = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const userId = (req as any).tenantId;
+    const userId = (req as any).userId;
     const { page = 1, limit = 20, status, clientId, search } = req.query;
 
     const where: any = { userId };
@@ -51,7 +51,7 @@ export const getInvoices = async (req: Request, res: Response, next: NextFunctio
 
 export const getInvoice = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const userId = (req as any).tenantId;
+    const userId = (req as any).userId;
     const { id } = req.params;
 
     const invoice = await prisma.invoice.findFirst({
@@ -75,7 +75,7 @@ export const getInvoice = async (req: Request, res: Response, next: NextFunction
 
 export const createInvoice = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const userId = (req as any).tenantId;
+    const userId = (req as any).userId;
     const { clientId, issueDate, dueDate, items, notes, terms } = req.body;
     // Coerce tax rate safely — an empty field arrives as null/NaN, which the
     // non-nullable Decimal column would reject. Default to 0.
@@ -121,7 +121,7 @@ export const createInvoice = async (req: Request, res: Response, next: NextFunct
 
 export const updateInvoice = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const userId = (req as any).tenantId;
+    const userId = (req as any).userId;
     const { id } = req.params;
     const { items, taxRate, ...rest } = req.body;
 
@@ -167,7 +167,7 @@ export const updateInvoice = async (req: Request, res: Response, next: NextFunct
 
 export const deleteInvoice = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const userId = (req as any).tenantId;
+    const userId = (req as any).userId;
     const { id } = req.params;
 
     const existing = await prisma.invoice.findFirst({ where: { id, userId } });
@@ -182,7 +182,7 @@ export const deleteInvoice = async (req: Request, res: Response, next: NextFunct
 
 export const generatePDF = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const userId = (req as any).tenantId;
+    const userId = (req as any).userId;
     const { id } = req.params;
 
     const invoice = await prisma.invoice.findFirst({
@@ -191,6 +191,11 @@ export const generatePDF = async (req: Request, res: Response, next: NextFunctio
     });
 
     if (!invoice) return res.status(404).json({ error: 'Invoice not found' });
+
+    // Company branding is shared across the org — use the workspace owner's details
+    const brand = invoice.user.ownerId
+      ? (await prisma.user.findUnique({ where: { id: invoice.user.ownerId } })) ?? invoice.user
+      : invoice.user;
 
     const doc = new PDFDocument({ margin: 50 });
     // Buffer the PDF in memory so an image-render error can't leave the
@@ -206,8 +211,8 @@ export const generatePDF = async (req: Request, res: Response, next: NextFunctio
 
     // Company logo (optional) — decode the base64 data URL stored on the user
     let logoBuf: Buffer | null = null;
-    if (invoice.user.logoUrl) {
-      const m = /^data:image\/(png|jpe?g);base64,(.+)$/i.exec(invoice.user.logoUrl);
+    if (brand.logoUrl) {
+      const m = /^data:image\/(png|jpe?g);base64,(.+)$/i.exec(brand.logoUrl);
       if (m) { try { logoBuf = Buffer.from(m[2], 'base64'); } catch { logoBuf = null; } }
     }
     if (logoBuf) {
@@ -223,10 +228,10 @@ export const generatePDF = async (req: Request, res: Response, next: NextFunctio
 
     // Company info (right side)
     doc.fontSize(12).font('Helvetica-Bold').fillColor('#1a1a2e')
-      .text(invoice.user.companyName, 300, titleY, { align: 'right' });
+      .text(brand.companyName, 300, titleY, { align: 'right' });
     doc.fontSize(9).font('Helvetica').fillColor('#666')
-      .text(invoice.user.email, 300, titleY + 18, { align: 'right' })
-      .text(invoice.user.phoneNumber || '', 300, titleY + 32, { align: 'right' });
+      .text(brand.email, 300, titleY + 18, { align: 'right' })
+      .text(brand.phoneNumber || '', 300, titleY + 32, { align: 'right' });
 
     // Divider
     const dividerY = titleY + 60;
@@ -305,7 +310,7 @@ export const generatePDF = async (req: Request, res: Response, next: NextFunctio
 
 export const sendInvoiceEmail = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const userId = (req as any).tenantId;
+    const userId = (req as any).userId;
     const { id } = req.params;
     const { message } = req.body;
 
@@ -356,7 +361,7 @@ export const sendInvoiceEmail = async (req: Request, res: Response, next: NextFu
 // Smart line-item suggestions from past invoices (this client first, then all)
 export const getItemSuggestions = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const userId = (req as any).tenantId;
+    const userId = (req as any).userId;
     const { clientId } = req.query;
 
     const items = await prisma.invoiceItem.findMany({

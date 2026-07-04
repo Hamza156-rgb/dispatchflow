@@ -12,7 +12,7 @@ clientsRouter.use(authenticate);
 
 clientsRouter.get('/', async (req, res, next) => {
   try {
-    const userId = (req as any).tenantId;
+    const userId = (req as any).userId;
     const { page = 1, limit = 20, search, sortBy = 'companyName' } = req.query;
     const where: any = { userId };
     if (search) {
@@ -38,7 +38,7 @@ clientsRouter.get('/', async (req, res, next) => {
 
 clientsRouter.get('/:id', async (req, res, next) => {
   try {
-    const userId = (req as any).tenantId;
+    const userId = (req as any).userId;
     const client = await prisma.client.findFirst({
       where: { id: req.params.id, userId },
       include: {
@@ -55,7 +55,7 @@ clientsRouter.get('/:id', async (req, res, next) => {
 
 clientsRouter.post('/', async (req, res, next) => {
   try {
-    const userId = (req as any).tenantId;
+    const userId = (req as any).userId;
     const client = await prisma.client.create({ data: { ...req.body, userId } });
     res.status(201).json(client);
   } catch (err) { next(err); }
@@ -63,7 +63,7 @@ clientsRouter.post('/', async (req, res, next) => {
 
 clientsRouter.put('/:id', async (req, res, next) => {
   try {
-    const userId = (req as any).tenantId;
+    const userId = (req as any).userId;
     const existing = await prisma.client.findFirst({ where: { id: req.params.id, userId } });
     if (!existing) return res.status(404).json({ error: 'Client not found' });
     const client = await prisma.client.update({
@@ -76,7 +76,7 @@ clientsRouter.put('/:id', async (req, res, next) => {
 
 clientsRouter.delete('/:id', async (req, res, next) => {
   try {
-    const userId = (req as any).tenantId;
+    const userId = (req as any).userId;
     const existing = await prisma.client.findFirst({ where: { id: req.params.id, userId } });
     if (!existing) return res.status(404).json({ error: 'Client not found' });
     await prisma.client.delete({ where: { id: req.params.id } });
@@ -107,7 +107,7 @@ paymentsRouter.use(authenticate);
 paymentsRouter.post('/', async (req, res, next) => {
   try {
     const { invoiceId, amount, paymentDate, paymentMethod, referenceNumber, notes } = req.body;
-    const userId = (req as any).tenantId;
+    const userId = (req as any).userId;
 
     const invoice = await prisma.invoice.findFirst({
       where: { id: invoiceId, userId },

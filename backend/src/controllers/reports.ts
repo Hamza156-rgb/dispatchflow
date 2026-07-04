@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 
 export const getReports = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const userId = (req as any).tenantId;
+    const userId = (req as any).userId;
     const { year = new Date().getFullYear() } = req.query;
 
     const startOfYear = new Date(`${year}-01-01`);
@@ -70,7 +70,7 @@ export const getReports = async (req: Request, res: Response, next: NextFunction
 
 export const getDashboard = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const userId = (req as any).tenantId;
+    const userId = (req as any).userId;
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
@@ -111,7 +111,7 @@ const daysBetween = (a: Date, b: Date) => Math.round((a.getTime() - b.getTime())
 
 export const getInsights = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const userId = (req as any).tenantId;
+    const userId = (req as any).userId;
     const now = new Date();
 
     const invoices = await prisma.invoice.findMany({
