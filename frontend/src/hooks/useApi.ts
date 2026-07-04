@@ -217,6 +217,14 @@ export const useUpdateOrganization = () => {
   });
 };
 
+export const useRecordOrgPayment = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => adminApi.recordPayment(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'organizations'] }),
+  });
+};
+
 // ─── Profile ──────────────────────────────────────────────────────────────────
 export const useUpdateProfile = () =>
   useMutation({

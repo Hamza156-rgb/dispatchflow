@@ -11,7 +11,7 @@ export const listOrganizations = async (_req: Request, res: Response, next: Next
   try {
     const owners = await prisma.user.findMany({
       where: { ownerId: null, isSuperAdmin: false },
-      select: { id: true, fullName: true, email: true, phoneNumber: true, companyName: true, plan: true, accountStatus: true, isSuperAdmin: true, createdAt: true },
+      select: { id: true, fullName: true, email: true, phoneNumber: true, companyName: true, plan: true, accountStatus: true, isSuperAdmin: true, createdAt: true, currentPeriodEnd: true, lastPaymentAt: true },
       orderBy: { createdAt: 'desc' },
     });
 
@@ -34,6 +34,7 @@ export const listOrganizations = async (_req: Request, res: Response, next: Next
         userCount: ids.length,
         limit: PLAN_LIMITS[o.plan] ?? 5,
         mrr: o.accountStatus === 'ACTIVE' ? (PLAN_PRICES[o.plan] ?? 0) : 0,
+        price: PLAN_PRICES[o.plan] ?? 0,
         clients, invoices, loads,
         revenue: num(paid._sum.totalAmount),
         outstanding: num(outstanding._sum.totalAmount),
@@ -42,6 +43,27 @@ export const listOrganizations = async (_req: Request, res: Response, next: Next
     }));
 
     res.json({ organizations });
+  } catch (err) { next(err); }
+};
+
+// POST /api/admin/organizations/:id/pay — record a manual payment, extend one month
+export const recordPayment = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const owner = await prisma.user.findFirst({ where: { id, ownerId: null } });
+    if (!owner) return res.status(404).json({ error: 'Organization not found' });
+
+    const now = new Date();
+    // Extend from the later of "now" or the current period end (stacks if paid early)
+    const base = owner.currentPeriodEnd && owner.currentPeriodEnd > now ? new Date(owner.currentPeriodEnd) : now;
+    const nextEnd = new Date(base);
+    nextEnd.setMonth(nextEnd.getMonth() + 1);
+
+    await prisma.user.update({
+      where: { id },
+      data: { accountStatus: 'ACTIVE', lastPaymentAt: now, currentPeriodEnd: nextEnd },
+    });
+    res.json({ message: 'Payment recorded', currentPeriodEnd: nextEnd });
   } catch (err) { next(err); }
 };
 

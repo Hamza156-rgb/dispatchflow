@@ -92,6 +92,7 @@ export const teamApi = {
 export const adminApi = {
   organizations: () => api.get('/admin/organizations').then(r => r.data),
   updateOrg: (id: string, data: any) => api.put(`/admin/organizations/${id}`, data).then(r => r.data),
+  recordPayment: (id: string) => api.post(`/admin/organizations/${id}/pay`).then(r => r.data),
 };
 
 // ─── PDF Download Helper ──────────────────────────────────────────────────────

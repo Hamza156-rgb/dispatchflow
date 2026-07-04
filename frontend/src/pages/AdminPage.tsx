@@ -1,8 +1,21 @@
 import { useState } from 'react';
-import { useOrganizations, useUpdateOrganization } from '../hooks/useApi';
+import { useOrganizations, useUpdateOrganization, useRecordOrgPayment } from '../hooks/useApi';
 import { useAuthStore } from '../store/authStore';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { Spinner, Toast, Avatar } from '../components/ui';
+
+const DAY = 86_400_000;
+// Billing status for a manual monthly subscription
+function billing(o: any) {
+  if (o.accountStatus === 'SUSPENDED') return { label: 'Suspended', c: '#b91c1c', bg: '#fee2e2', overdue: false, dueSoon: false, sub: '' };
+  if (!o.currentPeriodEnd) return { label: 'Awaiting payment', c: '#b45309', bg: '#fef3c7', overdue: true, dueSoon: false, sub: 'Never paid' };
+  const end = new Date(o.currentPeriodEnd).getTime();
+  const days = Math.ceil((end - Date.now()) / DAY);
+  const sub = new Date(o.currentPeriodEnd).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  if (days < 0) return { label: `Overdue ${-days}d`, c: '#b91c1c', bg: '#fee2e2', overdue: true, dueSoon: false, sub: `Due ${sub}` };
+  if (days <= 7) return { label: `Due in ${days}d`, c: '#b45309', bg: '#fef3c7', overdue: false, dueSoon: true, sub: `Due ${sub}` };
+  return { label: `Paid`, c: '#15803d', bg: '#dcfce7', overdue: false, dueSoon: false, sub: `Until ${sub}` };
+}
 
 const PLANS = ['STARTER', 'GROWTH', 'BUSINESS'];
 const STATUS_STYLE: Record<string, { c: string; bg: string }> = {
@@ -16,6 +29,7 @@ export default function AdminPage() {
   const isMobile = useMediaQuery('(max-width: 768px)');
   const { data, isLoading } = useOrganizations();
   const updateOrg = useUpdateOrganization();
+  const recordPay = useRecordOrgPayment();
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
 
@@ -30,10 +44,16 @@ export default function AdminPage() {
     catch { setToast({ msg: 'Update failed', type: 'error' }); }
     finally { setBusyId(null); }
   };
+  const markPaid = async (id: string) => {
+    setBusyId(id);
+    try { await recordPay.mutateAsync(id); setToast({ msg: 'Payment recorded — extended 1 month', type: 'success' }); }
+    catch { setToast({ msg: 'Could not record payment', type: 'error' }); }
+    finally { setBusyId(null); }
+  };
 
   const totalUsers = orgs.reduce((s: number, o: any) => s + o.userCount, 0);
   const activeCount = orgs.filter((o: any) => o.accountStatus === 'ACTIVE').length;
-  const pendingCount = orgs.filter((o: any) => o.accountStatus === 'PENDING').length;
+  const overdueCount = orgs.filter((o: any) => o.accountStatus !== 'SUSPENDED' && billing(o).overdue).length;
   const totalMrr = orgs.reduce((s: number, o: any) => s + (o.mrr || 0), 0);
   const fmtMoney = (n: any) => `$${Number(n || 0).toLocaleString('en-US')}`;
   const fmtDate = (d: any) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
@@ -57,7 +77,7 @@ export default function AdminPage() {
         {[
           { icon: '🏢', label: 'Organizations', value: orgs.length, bg: '#e0e7ff', accent: 'var(--color-text)' },
           { icon: '✅', label: 'Active', value: activeCount, bg: '#dcfce7', accent: '#16a34a' },
-          { icon: '⏳', label: 'Pending', value: pendingCount, bg: '#fef3c7', accent: '#b45309' },
+          { icon: '⚠️', label: 'Payments Due', value: overdueCount, bg: '#fee2e2', accent: overdueCount > 0 ? '#b91c1c' : 'var(--color-text)' },
           { icon: '💵', label: 'Your MRR', value: fmtMoney(totalMrr), bg: '#dcfce7', accent: '#16a34a' },
           { icon: '👥', label: 'Total Users', value: totalUsers, bg: '#dbeafe', accent: 'var(--color-text)' },
         ].map((c) => (
@@ -88,6 +108,7 @@ export default function AdminPage() {
                   <th style={{ ...th, textAlign: 'right' }}>MRR</th>
                   <th style={th}>Plan</th>
                   <th style={th}>Status</th>
+                  <th style={th}>Billing</th>
                   <th style={th}>Joined</th>
                   <th style={{ ...th, textAlign: 'center' }}>Actions</th>
                 </tr>
@@ -131,11 +152,20 @@ export default function AdminPage() {
                         {o.accountStatus.charAt(0) + o.accountStatus.slice(1).toLowerCase()}
                       </span>
                     </td>
+                    {/* Billing / next due */}
+                    <td style={td}>
+                      {(() => { const b = billing(o); return (
+                        <div>
+                          <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 700, color: b.c, background: b.bg, whiteSpace: 'nowrap' }}>{b.label}</span>
+                          {b.sub && <div style={{ fontSize: 11, color: 'var(--color-muted)', marginTop: 3 }}>{b.sub}</div>}
+                        </div>
+                      ); })()}
+                    </td>
                     <td style={{ ...td, color: 'var(--color-muted)' }}>{fmtDate(o.createdAt)}</td>
                     <td style={{ padding: '10px 16px', textAlign: 'center', whiteSpace: 'nowrap' }}>
-                      {o.accountStatus !== 'ACTIVE' && (
-                        <button onClick={() => patch(o.id, { accountStatus: 'ACTIVE' }, 'Activated')} disabled={busyId === o.id}
-                          style={{ background: '#16a34a', color: '#fff', border: 'none', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', fontSize: 12, fontWeight: 700, marginRight: 6, fontFamily: 'inherit' }}>Activate</button>
+                      {!o.isSuperAdmin && (
+                        <button onClick={() => markPaid(o.id)} disabled={busyId === o.id} title="Record a payment and extend one month"
+                          style={{ background: '#16a34a', color: '#fff', border: 'none', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', fontSize: 12, fontWeight: 700, marginRight: 6, fontFamily: 'inherit' }}>💵 Mark paid</button>
                       )}
                       {o.accountStatus !== 'SUSPENDED' && !o.isSuperAdmin && (
                         <button onClick={() => patch(o.id, { accountStatus: 'SUSPENDED' }, 'Suspended')} disabled={busyId === o.id}

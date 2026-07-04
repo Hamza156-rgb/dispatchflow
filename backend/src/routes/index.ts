@@ -4,7 +4,7 @@ import { PrismaClient } from '@prisma/client';
 import { authenticate, requireSuperAdmin } from '../middleware/errorHandler';
 import { buildMe } from '../controllers/auth';
 import { getTeam, addMember, removeMember } from '../controllers/team';
-import { listOrganizations, updateOrganization } from '../controllers/admin';
+import { listOrganizations, updateOrganization, recordPayment } from '../controllers/admin';
 
 const prisma = new PrismaClient();
 export const clientsRouter = Router();
@@ -181,3 +181,4 @@ export const adminRouter = IRouter();
 adminRouter.use(authenticate, requireSuperAdmin);
 adminRouter.get('/organizations', listOrganizations);
 adminRouter.put('/organizations/:id', updateOrganization);
+adminRouter.post('/organizations/:id/pay', recordPayment);

@@ -28,6 +28,9 @@ model User {
   role          String    @default("OWNER")   // OWNER | MEMBER
   isSuperAdmin  Boolean   @default(false)
   accountStatus String    @default("ACTIVE")  // PENDING | ACTIVE | SUSPENDED (on the owner)
+  // Manual billing cycle (on the owner)
+  currentPeriodEnd DateTime?  // "paid until" — next payment is due on this date
+  lastPaymentAt    DateTime?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
