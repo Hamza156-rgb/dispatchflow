@@ -34,6 +34,9 @@ export default function AdminPage() {
   const totalUsers = orgs.reduce((s: number, o: any) => s + o.userCount, 0);
   const activeCount = orgs.filter((o: any) => o.accountStatus === 'ACTIVE').length;
   const pendingCount = orgs.filter((o: any) => o.accountStatus === 'PENDING').length;
+  const totalMrr = orgs.reduce((s: number, o: any) => s + (o.mrr || 0), 0);
+  const fmtMoney = (n: any) => `$${Number(n || 0).toLocaleString('en-US')}`;
+  const fmtDate = (d: any) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
 
   const th: React.CSSProperties = { padding: '12px 16px', fontSize: 11, fontWeight: 700, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'left', whiteSpace: 'nowrap' };
   const td: React.CSSProperties = { padding: '12px 16px', fontSize: 13, color: 'var(--color-text)', whiteSpace: 'nowrap' };
@@ -49,11 +52,11 @@ export default function AdminPage() {
 
       {/* Summary */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px,1fr))', gap: 16, marginBottom: 22 }}>
-        {[['🏢', 'Organizations', orgs.length], ['✅', 'Active', activeCount], ['⏳', 'Pending', pendingCount], ['👥', 'Total Users', totalUsers]].map(([i, l, v]) => (
+        {[['🏢', 'Organizations', orgs.length], ['✅', 'Active', activeCount], ['⏳', 'Pending', pendingCount], ['💵', 'Your MRR', fmtMoney(totalMrr)], ['👥', 'Total Users', totalUsers]].map(([i, l, v]) => (
           <div key={l as string} style={{ background: 'var(--color-bg)', borderRadius: 14, border: '1.5px solid var(--color-border)', padding: '18px 20px' }}>
             <div style={{ fontSize: 18 }}>{i}</div>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: 6 }}>{l}</div>
-            <div style={{ fontSize: 24, fontWeight: 900, color: 'var(--color-text)', marginTop: 2 }}>{v as number}</div>
+            <div style={{ fontSize: 24, fontWeight: 900, color: l === 'Your MRR' ? '#16a34a' : 'var(--color-text)', marginTop: 2 }}>{v}</div>
           </div>
         ))}
       </div>
@@ -61,14 +64,17 @@ export default function AdminPage() {
       {isLoading ? <Spinner /> : (
         <div style={{ background: 'var(--color-bg)', borderRadius: 16, border: '1.5px solid var(--color-border)', overflow: 'hidden' }}>
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', minWidth: 920, borderCollapse: 'collapse' }}>
+            <table style={{ width: '100%', minWidth: 1200, borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ background: 'var(--color-surface)' }}>
                   <th style={th}>Organization</th>
                   <th style={th}>Users</th>
                   <th style={th}>Data</th>
+                  <th style={{ ...th, textAlign: 'right' }}>Revenue</th>
+                  <th style={{ ...th, textAlign: 'right' }}>MRR</th>
                   <th style={th}>Plan</th>
                   <th style={th}>Status</th>
+                  <th style={th}>Joined</th>
                   <th style={{ ...th, textAlign: 'center' }}>Actions</th>
                 </tr>
               </thead>
@@ -80,12 +86,15 @@ export default function AdminPage() {
                         <Avatar name={o.companyName || o.email} size={32} />
                         <div>
                           <div style={{ fontWeight: 700, fontSize: 14 }}>{o.companyName || '—'} {o.isSuperAdmin && <span style={{ fontSize: 11, color: '#7c3aed' }}>★ admin</span>}</div>
-                          <div style={{ fontSize: 12, color: 'var(--color-muted)' }}>{o.email}</div>
+                          <div style={{ fontSize: 12, color: 'var(--color-muted)' }}>{o.fullName} · {o.email}</div>
+                          {o.phoneNumber && <div style={{ fontSize: 11, color: 'var(--color-muted)' }}>{o.phoneNumber}</div>}
                         </div>
                       </div>
                     </td>
                     <td style={{ ...td, color: 'var(--color-muted)' }}>{o.userCount} / {o.limit}</td>
                     <td style={{ ...td, color: 'var(--color-muted)' }}>{o.clients}c · {o.invoices}i · {o.loads}L</td>
+                    <td style={{ ...td, textAlign: 'right', fontWeight: 700, color: '#16a34a' }}>{fmtMoney(o.revenue)}</td>
+                    <td style={{ ...td, textAlign: 'right', fontWeight: 700 }}>{fmtMoney(o.mrr)}</td>
                     <td style={td}>
                       <select value={o.plan} disabled={busyId === o.id} onChange={(e) => patch(o.id, { plan: e.target.value }, `Plan → ${e.target.value}`)}
                         style={{ padding: '6px 8px', borderRadius: 7, fontSize: 12, fontWeight: 700, border: '1.5px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text)', cursor: 'pointer', fontFamily: 'inherit' }}>
@@ -97,6 +106,7 @@ export default function AdminPage() {
                         {o.accountStatus.charAt(0) + o.accountStatus.slice(1).toLowerCase()}
                       </span>
                     </td>
+                    <td style={{ ...td, color: 'var(--color-muted)' }}>{fmtDate(o.createdAt)}</td>
                     <td style={{ padding: '10px 16px', textAlign: 'center', whiteSpace: 'nowrap' }}>
                       {o.accountStatus !== 'ACTIVE' && (
                         <button onClick={() => patch(o.id, { accountStatus: 'ACTIVE' }, 'Activated')} disabled={busyId === o.id}
