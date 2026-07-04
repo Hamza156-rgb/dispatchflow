@@ -48,7 +48,7 @@ export default function TeamPage() {
   const pct = Math.min(100, Math.round((count / limit) * 100));
 
   return (
-    <div style={{ padding: isMobile ? 16 : 28, maxWidth: 900, margin: '0 auto' }}>
+    <div style={{ padding: isMobile ? 16 : 28 }}>
       {toast && <Toast message={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 22, flexWrap: 'wrap' }}>

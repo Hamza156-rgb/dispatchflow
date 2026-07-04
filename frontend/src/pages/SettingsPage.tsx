@@ -68,7 +68,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div style={{ padding: isMobile ? 16 : 28, maxWidth: 720, margin: '0 auto' }}>
+    <div style={{ padding: isMobile ? 16 : 28 }}>
       {toast && <Toast message={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
 
       {/* Identity */}
