@@ -15,9 +15,9 @@ interface RegisterForm {
 }
 
 const PLANS = [
-  { id: 'STARTER', name: 'Starter', price: 5, users: 5 },
-  { id: 'GROWTH', name: 'Growth', price: 10, users: 10 },
-  { id: 'BUSINESS', name: 'Business', price: 20, users: 20 },
+  { id: 'STARTER', name: 'Starter', price: 20, users: 5 },
+  { id: 'GROWTH', name: 'Growth', price: 40, users: 10 },
+  { id: 'BUSINESS', name: 'Business', price: 60, users: 20 },
 ] as const;
 
 export default function RegisterPage() {

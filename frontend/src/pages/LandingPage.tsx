@@ -15,11 +15,11 @@ const FEATURES = [
 ];
 
 const PLANS = [
-  { name: 'Starter', price: 5, users: 5, popular: false, tagline: 'For owner-operators getting started',
+  { name: 'Starter', price: 20, users: 5, popular: false, tagline: 'For owner-operators getting started',
     perks: ['Up to 5 team members', 'Unlimited loads & invoices', 'Branded invoice PDFs', 'Client management', 'Email support'] },
-  { name: 'Growth', price: 10, users: 10, popular: true, tagline: 'For growing dispatch teams',
+  { name: 'Growth', price: 40, users: 10, popular: true, tagline: 'For growing dispatch teams',
     perks: ['Up to 10 team members', 'Everything in Starter', 'Smart Insights & forecasts', 'WhatsApp + email sending', 'Priority support'] },
-  { name: 'Business', price: 20, users: 20, popular: false, tagline: 'For established dispatch companies',
+  { name: 'Business', price: 60, users: 20, popular: false, tagline: 'For established dispatch companies',
     perks: ['Up to 20 team members', 'Everything in Growth', 'Custom branding', 'Advanced reports & export', 'Dedicated support'] },
 ];
 

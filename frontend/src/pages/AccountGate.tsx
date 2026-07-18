@@ -11,7 +11,7 @@ const BANK = {
   note: 'After transferring, email your receipt to billing@dispatchflow.app with your account email. We activate within 24 hours.',
 };
 
-const PRICE: Record<string, number> = { STARTER: 5, GROWTH: 10, BUSINESS: 20 };
+const PRICE: Record<string, number> = { STARTER: 20, GROWTH: 40, BUSINESS: 60 };
 
 export default function AccountGate({ status }: { status: 'PENDING' | 'SUSPENDED' }) {
   const { user, logout, updateUser } = useAuthStore();

@@ -26,7 +26,7 @@ const generateToken = (userId: string) => {
 };
 
 export const PLAN_LIMITS: Record<string, number> = { STARTER: 5, GROWTH: 10, BUSINESS: 20 };
-export const PLAN_PRICES: Record<string, number> = { STARTER: 5, GROWTH: 10, BUSINESS: 20 };
+export const PLAN_PRICES: Record<string, number> = { STARTER: 20, GROWTH: 40, BUSINESS: 60 };
 
 // Builds the client-facing user object: personal fields from self,
 // company/plan/status from the org owner (so members see org branding).
