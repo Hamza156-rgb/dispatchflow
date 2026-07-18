@@ -32,6 +32,7 @@ const isAllowedOrigin = (origin?: string) => {
   if (!origin) return true;                                  // curl / mobile / server-to-server
   if (/^http:\/\/localhost:\d+$/.test(origin)) return true; // local dev (any port)
   if (/^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(origin)) return true; // any Vercel deploy
+  if (/^https:\/\/([a-z0-9-]+\.)?shoptechsystems\.online$/i.test(origin)) return true; // custom domain(s)
   if (origin === process.env.FRONTEND_URL) return true;     // explicit production domain
   return false;
 };
