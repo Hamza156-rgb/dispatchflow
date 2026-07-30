@@ -116,6 +116,70 @@ export const createLoad = async (req: Request, res: Response, next: NextFunction
   }
 };
 
+// POST /api/loads/bulk — import many loads at once (from a CSV upload)
+export const bulkCreateLoads = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = (req as any).userId;
+    const rows: any[] = Array.isArray(req.body?.rows) ? req.body.rows : [];
+    if (!rows.length) return res.status(400).json({ error: 'No rows provided' });
+    if (rows.length > 1000) return res.status(400).json({ error: 'Too many rows (max 1000 per import)' });
+
+    const safeDate = (v: any) => { if (!v) return null; const d = new Date(v); return isNaN(d.getTime()) ? null : d; };
+    const STATUSES = ['PENDING', 'ACTIVE', 'DELIVERED', 'CANCELLED'];
+    const PAYS = ['UNPAID', 'PAID'];
+
+    // Cache this user's clients by lowercased company name (auto-create missing ones)
+    const clients = await prisma.client.findMany({ where: { userId }, select: { id: true, companyName: true } });
+    const clientMap = new Map(clients.map((c) => [c.companyName.trim().toLowerCase(), c.id]));
+
+    let count = await prisma.load.count({ where: { userId } });
+    let created = 0;
+    const errors: { row: number; error: string }[] = [];
+
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i] || {};
+      try {
+        const name = String(r.client || '').trim();
+        if (!name) { errors.push({ row: i + 1, error: 'Missing client name' }); continue; }
+        if (r.rate === undefined || r.rate === '' || isNaN(Number(r.rate))) { errors.push({ row: i + 1, error: 'Missing/invalid rate' }); continue; }
+
+        let clientId = clientMap.get(name.toLowerCase());
+        if (!clientId) {
+          const c = await prisma.client.create({ data: { userId, companyName: name, contactPerson: name, email: '' } });
+          clientId = c.id;
+          clientMap.set(name.toLowerCase(), c.id);
+        }
+
+        count += 1;
+        const status = STATUSES.includes(String(r.status || '').toUpperCase()) ? String(r.status).toUpperCase() : 'PENDING';
+        const paymentStatus = PAYS.includes(String(r.paymentStatus || '').toUpperCase()) ? String(r.paymentStatus).toUpperCase() : 'UNPAID';
+
+        await prisma.load.create({
+          data: {
+            loadNumber: `LD-${String(count).padStart(5, '0')}`,
+            userId, clientId,
+            originCity: r.originCity || null, originState: r.originState || null,
+            destCity: r.destCity || null, destState: r.destState || null,
+            pickupAt: safeDate(r.pickupAt), deliveryAt: safeDate(r.deliveryAt),
+            miles: r.miles ? num(r.miles) : null,
+            rate: num(r.rate),
+            equipment: r.equipment || null, driver: r.driver || null,
+            referenceNumber: r.referenceNumber || null, notes: r.notes || null,
+            status: status as LoadStatus, paymentStatus: paymentStatus as LoadPaymentStatus,
+          },
+        });
+        created += 1;
+      } catch (e: any) {
+        errors.push({ row: i + 1, error: e?.message || 'Failed' });
+      }
+    }
+
+    res.json({ created, failed: errors.length, errors: errors.slice(0, 20) });
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const updateLoad = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = (req as any).userId;

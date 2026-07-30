@@ -61,6 +61,44 @@ clientsRouter.post('/', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// Bulk import clients from a CSV upload (skips duplicates by company name)
+clientsRouter.post('/bulk', async (req, res, next) => {
+  try {
+    const userId = (req as any).userId;
+    const rows: any[] = Array.isArray(req.body?.rows) ? req.body.rows : [];
+    if (!rows.length) return res.status(400).json({ error: 'No rows provided' });
+    if (rows.length > 1000) return res.status(400).json({ error: 'Too many rows (max 1000 per import)' });
+
+    const existing = await prisma.client.findMany({ where: { userId }, select: { companyName: true } });
+    const seen = new Set(existing.map((c) => c.companyName.trim().toLowerCase()));
+
+    let created = 0, skipped = 0;
+    const errors: { row: number; error: string }[] = [];
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i] || {};
+      const name = String(r.companyName || '').trim();
+      if (!name) { errors.push({ row: i + 1, error: 'Missing companyName' }); continue; }
+      if (seen.has(name.toLowerCase())) { skipped++; continue; }
+      try {
+        await prisma.client.create({
+          data: {
+            userId,
+            companyName: name,
+            contactPerson: String(r.contactPerson || name).trim(),
+            email: String(r.email || '').trim(),
+            phone: r.phone || null, address: r.address || null,
+            city: r.city || null, state: r.state || null,
+            zipCode: r.zipCode || null, country: r.country || null, notes: r.notes || null,
+          },
+        });
+        seen.add(name.toLowerCase());
+        created += 1;
+      } catch (e: any) { errors.push({ row: i + 1, error: e?.message || 'Failed' }); }
+    }
+    res.json({ created, skipped, failed: errors.length, errors: errors.slice(0, 20) });
+  } catch (err) { next(err); }
+});
+
 clientsRouter.put('/:id', async (req, res, next) => {
   try {
     const userId = (req as any).userId;
@@ -132,12 +170,13 @@ paymentsRouter.post('/', async (req, res, next) => {
 });
 
 // routes/loads.ts
-import { getLoads, getLoad, createLoad, updateLoad, deleteLoad } from '../controllers/loads';
+import { getLoads, getLoad, createLoad, updateLoad, deleteLoad, bulkCreateLoads } from '../controllers/loads';
 
 export const loadsRouter = IRouter();
 loadsRouter.use(authenticate);
 loadsRouter.get('/', getLoads);
 loadsRouter.get('/:id', getLoad);
+loadsRouter.post('/bulk', bulkCreateLoads);
 loadsRouter.post('/', createLoad);
 loadsRouter.put('/:id', updateLoad);
 loadsRouter.delete('/:id', deleteLoad);
