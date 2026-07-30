@@ -1,8 +1,31 @@
 import { useState } from 'react';
-import { useLoads, useClients, useCreateLoad, useUpdateLoad, useDeleteLoad } from '../hooks/useApi';
+import { useLoads, useClients, useCreateLoad, useUpdateLoad, useDeleteLoad, useBulkCreateLoads } from '../hooks/useApi';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { Button, Input, Select, Textarea, FormField, Modal, Spinner, EmptyState, Pagination, Toast, Avatar } from '../components/ui';
 import type { Load, LoadPayload } from '../types';
+
+// Columns supported by the CSV importer (order used in the template)
+const CSV_COLUMNS = ['client', 'originCity', 'originState', 'destCity', 'destState', 'pickupAt', 'deliveryAt', 'miles', 'rate', 'equipment', 'driver', 'referenceNumber', 'status', 'paymentStatus', 'notes'];
+
+// Minimal CSV parser (handles quoted fields + commas/newlines inside quotes)
+function parseCSV(text: string): string[][] {
+  const rows: string[][] = [];
+  let cur: string[] = [], field = '', inQ = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (inQ) {
+      if (ch === '"') { if (text[i + 1] === '"') { field += '"'; i++; } else inQ = false; }
+      else field += ch;
+    } else if (ch === '"') inQ = true;
+    else if (ch === ',') { cur.push(field); field = ''; }
+    else if (ch === '\n' || ch === '\r') {
+      if (field !== '' || cur.length) { cur.push(field); rows.push(cur); cur = []; field = ''; }
+      if (ch === '\r' && text[i + 1] === '\n') i++;
+    } else field += ch;
+  }
+  if (field !== '' || cur.length) { cur.push(field); rows.push(cur); }
+  return rows;
+}
 
 const fmt = (n: any) => `$${Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 0 })}`;
 const EQUIPMENT = ['Dry Van', 'Reefer', 'Flatbed', 'Step Deck', 'Power Only', 'Box Truck', 'Hotshot', 'Other'];
@@ -51,6 +74,9 @@ export default function LoadsPage() {
   const [form, setForm] = useState<LoadPayload>(EMPTY);
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [importModal, setImportModal] = useState(false);
+  const [importRows, setImportRows] = useState<any[]>([]);
+  const [importErr, setImportErr] = useState('');
 
   const { data, isLoading } = useLoads({
     page, limit: 20,
@@ -82,9 +108,48 @@ export default function LoadsPage() {
   const createLoad = useCreateLoad();
   const updateLoad = useUpdateLoad();
   const deleteLoad = useDeleteLoad();
+  const bulkCreate = useBulkCreateLoads();
 
   const summary = data?.summary ?? { totalLoads: 0, active: 0, delivered: 0, unpaidAmount: 0, totalRevenue: 0 };
   const set = (k: keyof LoadPayload, v: any) => setForm((f) => ({ ...f, [k]: v }));
+
+  // ── CSV import ──────────────────────────────────────────────
+  const downloadTemplate = () => {
+    const example = ['Atlas Steel Corporation', 'Chicago', 'IL', 'Gary', 'IN', '2026-07-15 09:00', '2026-07-15 15:00', '45', '850', 'Flatbed', 'John D', 'REF-1001', 'PENDING', 'UNPAID', 'Handle with care'];
+    const csv = CSV_COLUMNS.join(',') + '\n' + example.map((v) => (/[",\n]/.test(v) ? `"${v}"` : v)).join(',') + '\n';
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+    const a = document.createElement('a'); a.href = url; a.download = 'loads-template.csv'; a.click(); URL.revokeObjectURL(url);
+  };
+
+  const onCsvFile = (file?: File) => {
+    setImportErr(''); setImportRows([]);
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const table = parseCSV(String(reader.result || '')).filter((r) => r.some((c) => c.trim() !== ''));
+        if (table.length < 2) { setImportErr('CSV needs a header row and at least one data row.'); return; }
+        const headers = table[0].map((h) => h.trim());
+        const rows = table.slice(1).map((cols) => {
+          const obj: any = {};
+          headers.forEach((h, i) => { obj[h] = (cols[i] ?? '').trim(); });
+          return obj;
+        });
+        setImportRows(rows);
+      } catch { setImportErr('Could not parse this file. Make sure it is a valid CSV.'); }
+    };
+    reader.readAsText(file);
+  };
+
+  const runImport = async () => {
+    try {
+      const res = await bulkCreate.mutateAsync(importRows);
+      setImportModal(false); setImportRows([]);
+      setToast({ msg: `Imported ${res.created} load${res.created !== 1 ? 's' : ''}${res.failed ? ` · ${res.failed} skipped` : ''}`, type: res.created ? 'success' : 'error' });
+    } catch {
+      setToast({ msg: 'Import failed', type: 'error' });
+    }
+  };
 
   const openNew = () => { setEditing(null); setForm(EMPTY); setModal(true); };
   const openEdit = (l: Load) => {
@@ -167,7 +232,10 @@ export default function LoadsPage() {
               </Select>
             </div>
           </div>
-          <Button onClick={openNew}>+ New Load</Button>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <Button variant="secondary" onClick={() => { setImportRows([]); setImportErr(''); setImportModal(true); }}>⬆️ Import CSV</Button>
+            <Button onClick={openNew}>+ New Load</Button>
+          </div>
         </div>
 
         {/* Filter bar */}
@@ -340,6 +408,54 @@ export default function LoadsPage() {
         <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 8 }}>
           <Button type="button" variant="secondary" onClick={() => setModal(false)}>Cancel</Button>
           <Button onClick={save} loading={createLoad.isPending || updateLoad.isPending}>{editing ? 'Save Changes' : 'Create Load'}</Button>
+        </div>
+      </Modal>
+
+      {/* Import CSV modal */}
+      <Modal open={importModal} onClose={() => setImportModal(false)} title="Import loads from CSV" width={640}>
+        <p style={{ margin: '0 0 14px', fontSize: 13, color: 'var(--color-muted)', lineHeight: 1.6 }}>
+          Upload a CSV to add many loads at once. Clients are matched by name — any that don't exist yet are created automatically.
+          Required columns: <strong>client</strong> and <strong>rate</strong>. Dates like <code>2026-07-15 09:00</code>.
+        </p>
+        <button onClick={downloadTemplate} style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', borderRadius: 8, padding: '8px 14px', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--color-text)', fontFamily: 'inherit', marginBottom: 16 }}>
+          ⬇️ Download CSV template
+        </button>
+
+        <input type="file" accept=".csv,text/csv" onChange={(e) => onCsvFile(e.target.files?.[0])}
+          style={{ display: 'block', width: '100%', padding: '10px', border: '1.5px dashed var(--color-border)', borderRadius: 10, background: 'var(--color-surface)', color: 'var(--color-text)', fontSize: 13, marginBottom: 14, boxSizing: 'border-box' }} />
+
+        {importErr && <div style={{ background: '#fee2e2', color: '#b91c1c', padding: '10px 14px', borderRadius: 8, fontSize: 13, marginBottom: 14 }}>⚠️ {importErr}</div>}
+
+        {importRows.length > 0 && (
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-text)', marginBottom: 8 }}>{importRows.length} rows found — preview:</div>
+            <div style={{ overflowX: 'auto', border: '1.5px solid var(--color-border)', borderRadius: 10 }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                <thead>
+                  <tr style={{ background: 'var(--color-surface)' }}>
+                    {['client', 'originCity', 'destCity', 'rate', 'equipment'].map((h) => (
+                      <th key={h} style={{ padding: '8px 12px', textAlign: 'left', color: 'var(--color-muted)', fontWeight: 700, whiteSpace: 'nowrap' }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {importRows.slice(0, 5).map((r, i) => (
+                    <tr key={i} style={{ borderTop: '1px solid var(--color-border)' }}>
+                      {['client', 'originCity', 'destCity', 'rate', 'equipment'].map((h) => (
+                        <td key={h} style={{ padding: '8px 12px', color: 'var(--color-text)', whiteSpace: 'nowrap' }}>{r[h] || '—'}</td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {importRows.length > 5 && <div style={{ fontSize: 12, color: 'var(--color-muted)', marginTop: 6 }}>…and {importRows.length - 5} more</div>}
+          </div>
+        )}
+
+        <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 8 }}>
+          <Button type="button" variant="secondary" onClick={() => setImportModal(false)}>Cancel</Button>
+          <Button onClick={runImport} loading={bulkCreate.isPending} disabled={!importRows.length}>Import {importRows.length || ''} loads</Button>
         </div>
       </Modal>
     </div>

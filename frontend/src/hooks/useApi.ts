@@ -53,6 +53,14 @@ export const useDeleteClient = () => {
   });
 };
 
+export const useBulkCreateClients = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (rows: any[]) => clientsApi.bulkCreate(rows),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['clients'] }),
+  });
+};
+
 // ─── Invoices ─────────────────────────────────────────────────────────────────
 export const useInvoices = (params?: {
   page?: number; limit?: number; status?: string; clientId?: string; search?: string;
@@ -181,6 +189,14 @@ export const useDeleteLoad = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => loadsApi.delete(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['loads'] }),
+  });
+};
+
+export const useBulkCreateLoads = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (rows: any[]) => loadsApi.bulkCreate(rows),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['loads'] }),
   });
 };

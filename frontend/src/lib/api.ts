@@ -41,6 +41,7 @@ export const clientsApi = {
   create: (data: any) => api.post('/clients', data).then(r => r.data),
   update: (id: string, data: any) => api.put(`/clients/${id}`, data).then(r => r.data),
   delete: (id: string) => api.delete(`/clients/${id}`).then(r => r.data),
+  bulkCreate: (rows: any[]) => api.post('/clients/bulk', { rows }).then(r => r.data),
 };
 
 // ─── Invoices ─────────────────────────────────────────────────────────────────
@@ -67,6 +68,7 @@ export const loadsApi = {
   create: (data: any) => api.post('/loads', data).then(r => r.data),
   update: (id: string, data: any) => api.put(`/loads/${id}`, data).then(r => r.data),
   delete: (id: string) => api.delete(`/loads/${id}`).then(r => r.data),
+  bulkCreate: (rows: any[]) => api.post('/loads/bulk', { rows }).then(r => r.data),
 };
 
 // ─── Reports ──────────────────────────────────────────────────────────────────
