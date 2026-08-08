@@ -11,7 +11,7 @@ const registerSchema = z.object({
   password: z.string().min(8),
   companyName: z.string().min(2).max(200),
   phoneNumber: z.string().optional(),
-  plan: z.enum(['STARTER', 'GROWTH', 'BUSINESS']).optional(),
+  plan: z.string().optional(),
 });
 
 const loginSchema = z.object({
@@ -53,6 +53,11 @@ export const buildMe = async (userId: string) => {
 export const register = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const data = registerSchema.parse(req.body);
+    const requestedPlan = (data.plan || 'GROWTH').toUpperCase();
+    const plan = await prisma.pricingPlan.findFirst({ where: { code: requestedPlan, active: true } });
+    if (!plan) {
+      return res.status(400).json({ error: 'Selected plan is not available' });
+    }
 
     const existingUser = await prisma.user.findUnique({ where: { email: data.email } });
     if (existingUser) {
@@ -64,6 +69,7 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
     const created = await prisma.user.create({
       data: {
         ...data,
+        plan: plan.code,
         password: hashedPassword,
         role: 'OWNER',
         accountStatus: 'PENDING', // requires activation (manual payment) before full access

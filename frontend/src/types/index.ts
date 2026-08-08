@@ -196,6 +196,22 @@ export interface AppConfig {
   };
 }
 
+export interface PricingPlan {
+  id: string;
+  code: string;
+  name: string;
+  tagline?: string | null;
+  description?: string | null;
+  price: number;
+  userLimit: number;
+  popular: boolean;
+  active: boolean;
+  sortOrder: number;
+  features: string[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 // ─── Load board (DAT) ─────────────────────────────────────────────────────────
 export interface LoadBoardStatus {
   provider: string;

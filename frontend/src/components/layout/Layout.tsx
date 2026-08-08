@@ -16,8 +16,8 @@ export default function Layout() {
 
   // Super admins only manage tenants — keep them on the admin panel.
   useEffect(() => {
-    if (user?.isSuperAdmin && location.pathname !== '/admin') {
-      navigate('/admin', { replace: true });
+    if (user?.isSuperAdmin && !location.pathname.startsWith('/admin')) {
+      navigate('/admin/overview', { replace: true });
     }
   }, [user?.isSuperAdmin, location.pathname, navigate]);
 

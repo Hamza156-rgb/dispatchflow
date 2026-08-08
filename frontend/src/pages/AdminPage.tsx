@@ -1,181 +1,255 @@
-import { useState } from 'react';
-import { useOrganizations, useUpdateOrganization, useRecordOrgPayment } from '../hooks/useApi';
+import { useMemo, useState } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { useMediaQuery } from '../hooks/useMediaQuery';
+import { useLocation } from 'react-router-dom';
 import { Spinner, Toast, Avatar } from '../components/ui';
+import { useAdminPlans, useCreatePlan, useDeletePlan, useOrganizations, useRecordOrgPayment, useUpdateOrganization, useUpdatePlan } from '../hooks/useApi';
+import type { PricingPlan } from '../types';
 
 const DAY = 86_400_000;
-// Billing status for a manual monthly subscription
 function billing(o: any) {
-  if (o.accountStatus === 'SUSPENDED') return { label: 'Suspended', c: '#b91c1c', bg: '#fee2e2', overdue: false, dueSoon: false, sub: '' };
-  if (!o.currentPeriodEnd) return { label: 'Awaiting payment', c: '#b45309', bg: '#fef3c7', overdue: true, dueSoon: false, sub: 'Never paid' };
+  if (o.accountStatus === 'SUSPENDED') return { label: 'Suspended', c: '#b91c1c', bg: '#fee2e2', sub: '' };
+  if (!o.currentPeriodEnd) return { label: 'Awaiting payment', c: '#b45309', bg: '#fef3c7', sub: 'Never paid' };
   const end = new Date(o.currentPeriodEnd).getTime();
   const days = Math.ceil((end - Date.now()) / DAY);
   const sub = new Date(o.currentPeriodEnd).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  if (days < 0) return { label: `Overdue ${-days}d`, c: '#b91c1c', bg: '#fee2e2', overdue: true, dueSoon: false, sub: `Due ${sub}` };
-  if (days <= 7) return { label: `Due in ${days}d`, c: '#b45309', bg: '#fef3c7', overdue: false, dueSoon: true, sub: `Due ${sub}` };
-  return { label: `Paid`, c: '#15803d', bg: '#dcfce7', overdue: false, dueSoon: false, sub: `Until ${sub}` };
+  if (days < 0) return { label: `Overdue ${-days}d`, c: '#b91c1c', bg: '#fee2e2', sub: `Due ${sub}` };
+  if (days <= 7) return { label: `Due in ${days}d`, c: '#b45309', bg: '#fef3c7', sub: `Due ${sub}` };
+  return { label: 'Paid', c: '#15803d', bg: '#dcfce7', sub: `Until ${sub}` };
 }
 
-const PLANS = ['STARTER', 'GROWTH', 'BUSINESS'];
-const STATUS_STYLE: Record<string, { c: string; bg: string }> = {
-  PENDING: { c: '#b45309', bg: '#fef3c7' },
-  ACTIVE: { c: '#15803d', bg: '#dcfce7' },
-  SUSPENDED: { c: '#b91c1c', bg: '#fee2e2' },
-};
+const blankPlan: Partial<PricingPlan> = { code: '', name: '', tagline: '', description: '', price: 0, userLimit: 0, popular: false, active: true, sortOrder: 0, features: [] };
 
 export default function AdminPage() {
   const { user } = useAuthStore();
   const isMobile = useMediaQuery('(max-width: 768px)');
-  const { data, isLoading } = useOrganizations();
-  const updateOrg = useUpdateOrganization();
-  const recordPay = useRecordOrgPayment();
+  const location = useLocation();
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [editing, setEditing] = useState<Partial<PricingPlan> | null>(null);
+  const [featuresText, setFeaturesText] = useState('');
 
-  if (!user?.isSuperAdmin) {
-    return <div style={{ padding: 28, color: 'var(--color-muted)' }}>You don't have access to this page.</div>;
-  }
+  const { data: orgData, isLoading: orgLoading } = useOrganizations();
+  const { data: planData, isLoading: planLoading } = useAdminPlans();
+  const updateOrg = useUpdateOrganization();
+  const recordPay = useRecordOrgPayment();
+  const createPlan = useCreatePlan();
+  const updatePlan = useUpdatePlan();
+  const deletePlan = useDeletePlan();
 
-  const orgs = data?.organizations ?? [];
-  const patch = async (id: string, body: any, msg: string) => {
+  if (!user?.isSuperAdmin) return <div style={{ padding: 28, color: 'var(--color-muted)' }}>You don't have access to this page.</div>;
+
+  const orgs = orgData?.organizations ?? [];
+  const plans = planData?.plans ?? [];
+
+  const summary = useMemo(() => ({
+    orgs: orgs.length,
+    active: orgs.filter((o: any) => o.accountStatus === 'ACTIVE').length,
+    due: orgs.filter((o: any) => o.accountStatus !== 'SUSPENDED' && billing(o).label !== 'Paid').length,
+    mrr: orgs.reduce((s: number, o: any) => s + (o.mrr || 0), 0),
+    users: orgs.reduce((s: number, o: any) => s + (o.userCount || 0), 0),
+  }), [orgs]);
+
+  const patchOrg = async (id: string, body: any, msg: string) => {
     setBusyId(id);
     try { await updateOrg.mutateAsync({ id, data: body }); setToast({ msg, type: 'success' }); }
     catch { setToast({ msg: 'Update failed', type: 'error' }); }
     finally { setBusyId(null); }
   };
-  const markPaid = async (id: string) => {
-    setBusyId(id);
-    try { await recordPay.mutateAsync(id); setToast({ msg: 'Payment recorded — extended 1 month', type: 'success' }); }
-    catch { setToast({ msg: 'Could not record payment', type: 'error' }); }
-    finally { setBusyId(null); }
+
+  const savePlan = async () => {
+    const payload = { ...editing, features: featuresText.split('\n').map((s) => s.trim()).filter(Boolean) };
+    try {
+      if (editing?.id) await updatePlan.mutateAsync({ id: editing.id, data: payload });
+      else await createPlan.mutateAsync(payload);
+      setToast({ msg: 'Plan saved', type: 'success' });
+      setEditing(null);
+      setFeaturesText('');
+    } catch {
+      setToast({ msg: 'Could not save plan', type: 'error' });
+    }
   };
 
-  const totalUsers = orgs.reduce((s: number, o: any) => s + o.userCount, 0);
-  const activeCount = orgs.filter((o: any) => o.accountStatus === 'ACTIVE').length;
-  const overdueCount = orgs.filter((o: any) => o.accountStatus !== 'SUSPENDED' && billing(o).overdue).length;
-  const totalMrr = orgs.reduce((s: number, o: any) => s + (o.mrr || 0), 0);
-  const fmtMoney = (n: any) => `$${Number(n || 0).toLocaleString('en-US')}`;
-  const fmtDate = (d: any) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
+  const section = location.pathname.endsWith('/plans')
+    ? 'plans'
+    : location.pathname.endsWith('/organizations')
+      ? 'organizations'
+      : 'overview';
+
+  const startEdit = (p: PricingPlan) => {
+    setEditing(p);
+    setFeaturesText((p.features || []).join('\n'));
+  };
 
   const th: React.CSSProperties = { padding: '12px 16px', fontSize: 11, fontWeight: 700, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'left', whiteSpace: 'nowrap' };
   const td: React.CSSProperties = { padding: '12px 16px', fontSize: 13, color: 'var(--color-text)', whiteSpace: 'nowrap' };
+  const chipBtn: React.CSSProperties = {
+    padding: '8px 14px',
+    borderRadius: 999,
+    border: '1px solid rgba(148,163,184,0.35)',
+    background: 'linear-gradient(180deg, rgba(255,255,255,0.95), rgba(241,245,249,0.95))',
+    color: '#0f172a',
+    fontSize: 12,
+    fontWeight: 800,
+    cursor: 'pointer',
+    boxShadow: '0 1px 2px rgba(15,23,42,0.08)',
+    transition: 'transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease',
+  };
+  const primaryChipBtn: React.CSSProperties = {
+    ...chipBtn,
+    background: 'linear-gradient(180deg, #22c55e, #16a34a)',
+    color: '#fff',
+    border: '1px solid rgba(22,163,74,0.35)',
+  };
+  const selectStyle: React.CSSProperties = {
+    padding: '10px 40px 10px 14px',
+    borderRadius: 12,
+    border: '1px solid rgba(148,163,184,0.45)',
+    background: 'linear-gradient(180deg, rgba(255,255,255,0.96), rgba(248,250,252,0.96))',
+    color: 'var(--color-text)',
+    fontWeight: 800,
+    fontSize: 12,
+    outline: 'none',
+    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.8), 0 1px 2px rgba(15,23,42,0.05)',
+    cursor: 'pointer',
+    appearance: 'none',
+  };
 
   return (
     <div style={{ padding: isMobile ? 16 : 28 }}>
       {toast && <Toast message={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
-
-      {/* Header with gradient accent */}
-      <div style={{ borderRadius: 18, padding: isMobile ? '22px 20px' : '26px 28px', marginBottom: 22,
-        background: 'radial-gradient(600px 200px at 90% -20%, rgba(124,58,237,0.35), transparent), #0b1220', color: '#fff' }}>
-        <h2 style={{ margin: 0, fontSize: 22, fontWeight: 900, letterSpacing: '-0.5px' }}>🛡️ Super Admin Console</h2>
-        <p style={{ margin: '6px 0 0', color: '#94a3b8', fontSize: 14 }}>Manage every organization — plans, activation, suspension, and revenue.</p>
+      <div style={{ borderRadius: 18, padding: isMobile ? '22px 20px' : '26px 28px', marginBottom: 22, background: 'radial-gradient(600px 200px at 90% -20%, rgba(124,58,237,0.35), transparent), #0b1220', color: '#fff' }}>
+        <h2 style={{ margin: 0, fontSize: 22, fontWeight: 900 }}>🛡️ Super Admin Console</h2>
+        <p style={{ margin: '6px 0 0', color: '#94a3b8', fontSize: 14 }}>Manage organizations, plans, and billing from one place.</p>
       </div>
 
-      {/* Summary */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px,1fr))', gap: 16, marginBottom: 22 }}>
-        {[
-          { icon: '🏢', label: 'Organizations', value: orgs.length, bg: '#e0e7ff', accent: 'var(--color-text)' },
-          { icon: '✅', label: 'Active', value: activeCount, bg: '#dcfce7', accent: '#16a34a' },
-          { icon: '⚠️', label: 'Payments Due', value: overdueCount, bg: '#fee2e2', accent: overdueCount > 0 ? '#b91c1c' : 'var(--color-text)' },
-          { icon: '💵', label: 'Your MRR', value: fmtMoney(totalMrr), bg: '#dcfce7', accent: '#16a34a' },
-          { icon: '👥', label: 'Total Users', value: totalUsers, bg: '#dbeafe', accent: 'var(--color-text)' },
-        ].map((c) => (
-          <div key={c.label} style={{ background: 'var(--color-bg)', borderRadius: 16, border: '1.5px solid var(--color-border)', padding: '18px 20px', display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div style={{ width: 46, height: 46, borderRadius: 12, background: c.bg, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>{c.icon}</div>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{c.label}</div>
-              <div style={{ fontSize: 24, fontWeight: 900, color: c.accent, marginTop: 3, whiteSpace: 'nowrap' }}>{c.value}</div>
+      <div style={{ color: 'var(--color-muted)', fontSize: 13, marginBottom: 18 }}>
+        {section === 'overview' && 'Overview'}
+        {section === 'organizations' && 'Organizations'}
+        {section === 'plans' && 'Plans'}
+      </div>
+
+      {section === 'overview' && (
+        <>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px,1fr))', gap: 16, marginBottom: 22 }}>
+            {[
+              ['🏢', 'Organizations', summary.orgs, '#e0e7ff'],
+              ['✅', 'Active', summary.active, '#dcfce7'],
+              ['⚠️', 'Payments Due', summary.due, '#fee2e2'],
+              ['💵', 'Your MRR', `$${summary.mrr.toLocaleString('en-US')}`, '#dcfce7'],
+              ['👥', 'Total Users', summary.users, '#dbeafe'],
+            ].map(([icon, label, value, bg]) => (
+              <div key={String(label)} style={{ background: 'var(--color-bg)', borderRadius: 16, border: '1.5px solid var(--color-border)', padding: '18px 20px', display: 'flex', alignItems: 'center', gap: 14 }}>
+                <div style={{ width: 46, height: 46, borderRadius: 12, background: bg as string, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>{icon as string}</div>
+                <div><div style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-muted)', textTransform: 'uppercase' }}>{label as string}</div><div style={{ fontSize: 24, fontWeight: 900 }}>{String(value)}</div></div>
+              </div>
+            ))}
+          </div>
+          <div style={{ background: 'var(--color-bg)', border: '1.5px solid var(--color-border)', borderRadius: 16, padding: 18 }}>
+            <div style={{ fontWeight: 800, marginBottom: 8 }}>Quick Notes</div>
+            <div style={{ color: 'var(--color-muted)', fontSize: 14, lineHeight: 1.7 }}>
+              Use <strong>Organizations</strong> for billing and account status.
+              Use <strong>Plans</strong> to edit pricing, seat limits, and landing page cards.
             </div>
           </div>
-        ))}
-      </div>
+        </>
+      )}
 
-      {isLoading ? <Spinner /> : (
+      {section === 'organizations' && (
         <div style={{ background: 'var(--color-bg)', borderRadius: 16, border: '1.5px solid var(--color-border)', overflow: 'hidden' }}>
-          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <h3 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: 'var(--color-text)' }}>All Organizations</h3>
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between' }}>
+            <h3 style={{ margin: 0, fontSize: 15, fontWeight: 800 }}>All Organizations</h3>
             <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-muted)', background: 'var(--color-surface)', padding: '4px 10px', borderRadius: 20 }}>{orgs.length} total</span>
           </div>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', minWidth: 1200, borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ background: 'var(--color-surface)' }}>
-                  <th style={th}>Organization</th>
-                  <th style={th}>Users</th>
-                  <th style={th}>Data</th>
-                  <th style={{ ...th, textAlign: 'right' }}>Revenue</th>
-                  <th style={{ ...th, textAlign: 'right' }}>MRR</th>
-                  <th style={th}>Plan</th>
-                  <th style={th}>Status</th>
-                  <th style={th}>Billing</th>
-                  <th style={th}>Joined</th>
-                  <th style={{ ...th, textAlign: 'center' }}>Actions</th>
-                </tr>
-              </thead>
+          {orgLoading ? <Spinner /> : <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', minWidth: 1180, borderCollapse: 'collapse' }}>
+              <thead><tr style={{ background: 'var(--color-surface)' }}>{['Organization', 'Users', 'Revenue', 'MRR', 'Plan', 'Status', 'Billing', 'Actions'].map((h) => <th key={h} style={th}>{h}</th>)}</tr></thead>
               <tbody>
                 {orgs.map((o: any) => (
-                  <tr key={o.id} style={{ borderBottom: '1px solid var(--color-border)', opacity: busyId === o.id ? 0.5 : 1, transition: 'background 0.15s' }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--color-surface)')}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
+                  <tr key={o.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                    <td style={td}><div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><Avatar name={o.companyName || o.email} size={34} /><div><div style={{ fontWeight: 700 }}>{o.companyName}</div><div style={{ fontSize: 12, color: 'var(--color-muted)' }}>{o.email}</div></div></div></td>
+                    <td style={td}>{o.userCount} / {o.limit}</td>
+                    <td style={{ ...td, fontWeight: 700 }}>${Number(o.revenue || 0).toLocaleString('en-US')}</td>
+                    <td style={{ ...td, fontWeight: 700 }}>${Number(o.mrr || 0).toLocaleString('en-US')}</td>
                     <td style={td}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <Avatar name={o.companyName || o.email} size={38} />
-                        <div>
-                          <div style={{ fontWeight: 700, fontSize: 14 }}>{o.companyName || '—'} {o.isSuperAdmin && <span style={{ fontSize: 11, color: '#7c3aed' }}>★ admin</span>}</div>
-                          <div style={{ fontSize: 12, color: 'var(--color-muted)' }}>{o.fullName} · {o.email}</div>
-                          {o.phoneNumber && <div style={{ fontSize: 11, color: 'var(--color-muted)' }}>{o.phoneNumber}</div>}
-                        </div>
-                      </div>
-                    </td>
-                    <td style={{ ...td }}>
-                      <span style={{ fontWeight: 700 }}>{o.userCount}</span>
-                      <span style={{ color: 'var(--color-muted)' }}> / {o.limit}</span>
-                    </td>
-                    <td style={td}>
-                      <div style={{ display: 'flex', gap: 6 }}>
-                        {[[o.clients, 'clients'], [o.invoices, 'inv'], [o.loads, 'loads']].map(([n, l]) => (
-                          <span key={l as string} style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-muted)', background: 'var(--color-surface)', padding: '3px 8px', borderRadius: 6, whiteSpace: 'nowrap' }}>{n as number} {l}</span>
-                        ))}
-                      </div>
-                    </td>
-                    <td style={{ ...td, textAlign: 'right', fontWeight: 700, color: '#16a34a' }}>{fmtMoney(o.revenue)}</td>
-                    <td style={{ ...td, textAlign: 'right', fontWeight: 700 }}>{fmtMoney(o.mrr)}</td>
-                    <td style={td}>
-                      <select value={o.plan} disabled={busyId === o.id} onChange={(e) => patch(o.id, { plan: e.target.value }, `Plan → ${e.target.value}`)}
-                        style={{ padding: '6px 8px', borderRadius: 7, fontSize: 12, fontWeight: 700, border: '1.5px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text)', cursor: 'pointer', fontFamily: 'inherit' }}>
-                        {PLANS.map((p) => <option key={p} value={p}>{p}</option>)}
+                      <select
+                        value={o.plan}
+                        onChange={(e) => patchOrg(o.id, { plan: e.target.value }, 'Plan updated')}
+                        style={selectStyle}
+                      >
+                        <option>STARTER</option>
+                        <option>GROWTH</option>
+                        <option>BUSINESS</option>
                       </select>
                     </td>
+                    <td style={td}>{o.accountStatus}</td>
+                    <td style={td}><span style={{ padding: '3px 10px', borderRadius: 20, background: billing(o).bg, color: billing(o).c, fontSize: 12, fontWeight: 700 }}>{billing(o).label}</span></td>
                     <td style={td}>
-                      <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 700, color: STATUS_STYLE[o.accountStatus]?.c, background: STATUS_STYLE[o.accountStatus]?.bg }}>
-                        {o.accountStatus.charAt(0) + o.accountStatus.slice(1).toLowerCase()}
-                      </span>
-                    </td>
-                    {/* Billing / next due */}
-                    <td style={td}>
-                      {(() => { const b = billing(o); return (
-                        <div>
-                          <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 700, color: b.c, background: b.bg, whiteSpace: 'nowrap' }}>{b.label}</span>
-                          {b.sub && <div style={{ fontSize: 11, color: 'var(--color-muted)', marginTop: 3 }}>{b.sub}</div>}
-                        </div>
-                      ); })()}
-                    </td>
-                    <td style={{ ...td, color: 'var(--color-muted)' }}>{fmtDate(o.createdAt)}</td>
-                    <td style={{ padding: '10px 16px', textAlign: 'center', whiteSpace: 'nowrap' }}>
-                      {!o.isSuperAdmin && (
-                        <button onClick={() => markPaid(o.id)} disabled={busyId === o.id} title="Record a payment and extend one month"
-                          style={{ background: '#16a34a', color: '#fff', border: 'none', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', fontSize: 12, fontWeight: 700, marginRight: 6, fontFamily: 'inherit' }}>💵 Mark paid</button>
-                      )}
-                      {o.accountStatus !== 'SUSPENDED' && !o.isSuperAdmin && (
-                        <button onClick={() => patch(o.id, { accountStatus: 'SUSPENDED' }, 'Suspended')} disabled={busyId === o.id}
-                          style={{ background: 'var(--color-surface)', color: '#b91c1c', border: '1.5px solid var(--color-border)', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'inherit' }}>Suspend</button>
-                      )}
+                      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                        <button
+                          onClick={() => patchOrg(o.id, { accountStatus: 'SUSPENDED' }, 'Suspended')}
+                          style={chipBtn}
+                        >
+                          Suspend
+                        </button>
+                        <button
+                          onClick={() => recordPay.mutateAsync(o.id)}
+                          style={primaryChipBtn}
+                        >
+                          Mark paid
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+          </div>}
+        </div>
+      )}
+
+      {section === 'plans' && (
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '380px 1fr', gap: 18 }}>
+          <div style={{ background: 'var(--color-bg)', border: '1.5px solid var(--color-border)', borderRadius: 16, padding: 18 }}>
+            <div style={{ fontWeight: 800, marginBottom: 12 }}>{editing?.id ? 'Edit plan' : 'New plan'}</div>
+            <div style={{ display: 'grid', gap: 10 }}>
+              {(['code','name','tagline','description','price','userLimit','sortOrder'] as const).map((k) => (
+                <label key={k} style={{ display: 'grid', gap: 4, fontSize: 12, fontWeight: 700, color: 'var(--color-muted)' }}>
+                  {k}
+                  <input value={String((editing ?? blankPlan)[k] ?? '')} onChange={(e) => setEditing((p) => ({ ...(p ?? blankPlan), [k]: k === 'price' || k === 'userLimit' || k === 'sortOrder' ? Number(e.target.value) : e.target.value }))} style={{ padding: 10, borderRadius: 8, border: '1px solid var(--color-border)' }} />
+                </label>
+              ))}
+              <label style={{ display: 'grid', gap: 4, fontSize: 12, fontWeight: 700, color: 'var(--color-muted)' }}>
+                Features, one per line
+                <textarea value={featuresText} onChange={(e) => setFeaturesText(e.target.value)} rows={6} style={{ padding: 10, borderRadius: 8, border: '1px solid var(--color-border)' }} />
+              </label>
+              <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}><input type="checkbox" checked={!!editing?.popular} onChange={(e) => setEditing((p) => ({ ...(p ?? blankPlan), popular: e.target.checked }))} /> Popular</label>
+              <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}><input type="checkbox" checked={editing?.active !== false} onChange={(e) => setEditing((p) => ({ ...(p ?? blankPlan), active: e.target.checked }))} /> Active</label>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button onClick={savePlan} type="button" style={primaryChipBtn}>Save plan</button>
+                <button onClick={() => { setEditing(null); setFeaturesText(''); }} type="button" style={chipBtn}>Clear</button>
+              </div>
+            </div>
+          </div>
+          <div style={{ background: 'var(--color-bg)', border: '1.5px solid var(--color-border)', borderRadius: 16, padding: 18 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+              <div style={{ fontWeight: 800 }}>Plan catalog</div>
+              <div style={{ color: 'var(--color-muted)', fontSize: 12 }}>{plans.length} plans</div>
+            </div>
+            {planLoading ? <Spinner /> : plans.map((p) => (
+              <div key={p.id} style={{ border: '1px solid var(--color-border)', borderRadius: 14, padding: 16, marginBottom: 12, display: 'grid', gap: 8 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+                  <div><strong>{p.name}</strong> <span style={{ color: 'var(--color-muted)' }}>({p.code})</span></div>
+                  <div>${p.price}/mo · up to {p.userLimit} users</div>
+                </div>
+                <div style={{ color: 'var(--color-muted)', fontSize: 13 }}>{p.tagline}</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>{(p.features || []).map((f) => <span key={f} style={{ fontSize: 12, background: 'var(--color-surface)', borderRadius: 999, padding: '4px 10px' }}>{f}</span>)}</div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button onClick={() => startEdit(p)} type="button" style={chipBtn}>Edit</button>
+                  <button onClick={() => deletePlan.mutateAsync(p.id)} type="button" style={{ ...chipBtn, color: '#b91c1c' }}>{p.active ? 'Delete / deactivate' : 'Remove'}</button>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}

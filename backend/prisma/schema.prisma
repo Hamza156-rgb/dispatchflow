@@ -69,6 +69,26 @@ model LoadBoardCredential {
   @@index([userId, provider, updatedAt])
 }
 
+// Admin-managed plan catalog. Existing users still store a plan code in `User.plan`,
+// but the display name, price, and seat limit come from here.
+model PricingPlan {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  name        String
+  tagline     String?
+  description String?
+  price       Int
+  userLimit   Int
+  popular     Boolean  @default(false)
+  active      Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  features    String[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([active, sortOrder])
+}
+
 model Client {
   id            String   @id @default(cuid())
   companyName   String

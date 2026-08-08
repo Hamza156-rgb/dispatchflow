@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { clientsApi, invoicesApi, paymentsApi, reportsApi, profileApi, loadsApi, loadBoardApi, configApi, teamApi, adminApi, downloadInvoicePdf } from '../lib/api';
-import type { AppConfig, ClientPayload, CreateInvoicePayload, PaymentPayload, ProfilePayload, LoadPayload, LoadBoardResult, LoadBoardSearchParams, LoadBoardStatus, LoadBoardSearchResponse, ParsedLoadResponse } from '../types';
+import { clientsApi, invoicesApi, paymentsApi, reportsApi, profileApi, loadsApi, loadBoardApi, configApi, teamApi, adminApi, downloadInvoicePdf, plansApi } from '../lib/api';
+import type { AppConfig, ClientPayload, CreateInvoicePayload, PaymentPayload, ProfilePayload, LoadPayload, LoadBoardResult, LoadBoardSearchParams, LoadBoardStatus, LoadBoardSearchResponse, ParsedLoadResponse, PricingPlan } from '../types';
 
 // ─── Query Keys ───────────────────────────────────────────────────────────────
 export const QK = {
@@ -280,6 +280,36 @@ export const useRemoveMember = () => {
 // ─── Super Admin ──────────────────────────────────────────────────────────────
 export const useOrganizations = () =>
   useQuery({ queryKey: ['admin', 'organizations'], queryFn: () => adminApi.organizations(), staleTime: 60_000 });
+
+export const useAdminPlans = () =>
+  useQuery<{ plans: PricingPlan[] }>({ queryKey: ['admin', 'plans'], queryFn: () => plansApi.adminList(), staleTime: 60_000 });
+
+export const usePublicPlans = () =>
+  useQuery<{ plans: PricingPlan[] }>({ queryKey: ['public', 'plans'], queryFn: () => plansApi.publicList(), staleTime: Infinity });
+
+export const useCreatePlan = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Partial<PricingPlan>) => adminApi.plans.create(data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'plans'] }),
+  });
+};
+
+export const useUpdatePlan = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<PricingPlan> }) => adminApi.plans.update(id, data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'plans'] }),
+  });
+};
+
+export const useDeletePlan = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => adminApi.plans.remove(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'plans'] }),
+  });
+};
 
 export const useUpdateOrganization = () => {
   const qc = useQueryClient();

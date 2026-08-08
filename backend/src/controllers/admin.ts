@@ -83,3 +83,72 @@ export const updateOrganization = async (req: Request, res: Response, next: Next
     res.json({ message: 'Organization updated' });
   } catch (err) { next(err); }
 };
+
+export const listPlans = async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const plans = await prisma.pricingPlan.findMany({ orderBy: [{ sortOrder: 'asc' }, { price: 'asc' }] });
+    res.json({ plans });
+  } catch (err) { next(err); }
+};
+
+export const createPlan = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const b = req.body || {};
+    if (!b.code || !b.name) return res.status(400).json({ error: 'Code and name are required' });
+    const plan = await prisma.pricingPlan.create({
+      data: {
+        code: String(b.code).toUpperCase(),
+        name: String(b.name),
+        tagline: b.tagline || null,
+        description: b.description || null,
+        price: Number(b.price || 0),
+        userLimit: Number(b.userLimit || 0),
+        popular: !!b.popular,
+        active: b.active !== false,
+        sortOrder: Number(b.sortOrder || 0),
+        features: Array.isArray(b.features) ? b.features.map(String) : [],
+      },
+    });
+    res.status(201).json(plan);
+  } catch (err) { next(err); }
+};
+
+export const updatePlan = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const existing = await prisma.pricingPlan.findUnique({ where: { id } });
+    if (!existing) return res.status(404).json({ error: 'Plan not found' });
+    const b = req.body || {};
+    const plan = await prisma.pricingPlan.update({
+      where: { id },
+      data: {
+        ...(b.code ? { code: String(b.code).toUpperCase() } : {}),
+        ...(b.name ? { name: String(b.name) } : {}),
+        ...(b.tagline !== undefined ? { tagline: b.tagline || null } : {}),
+        ...(b.description !== undefined ? { description: b.description || null } : {}),
+        ...(b.price !== undefined ? { price: Number(b.price) } : {}),
+        ...(b.userLimit !== undefined ? { userLimit: Number(b.userLimit) } : {}),
+        ...(b.popular !== undefined ? { popular: !!b.popular } : {}),
+        ...(b.active !== undefined ? { active: !!b.active } : {}),
+        ...(b.sortOrder !== undefined ? { sortOrder: Number(b.sortOrder) } : {}),
+        ...(Array.isArray(b.features) ? { features: b.features.map(String) } : {}),
+      },
+    });
+    res.json(plan);
+  } catch (err) { next(err); }
+};
+
+export const deletePlan = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const existing = await prisma.pricingPlan.findUnique({ where: { id } });
+    if (!existing) return res.status(404).json({ error: 'Plan not found' });
+    const used = await prisma.user.count({ where: { plan: existing.code } });
+    if (used > 0) {
+      await prisma.pricingPlan.update({ where: { id }, data: { active: false } });
+      return res.json({ message: 'Plan deactivated because existing users depend on it' });
+    }
+    await prisma.pricingPlan.delete({ where: { id } });
+    res.json({ message: 'Plan deleted' });
+  } catch (err) { next(err); }
+};

@@ -31,6 +31,14 @@ export const configApi = {
   get: () => api.get('/config').then(r => r.data),
 };
 
+export const plansApi = {
+  publicList: () => api.get('/plans').then(r => r.data),
+  adminList: () => api.get('/admin/plans').then(r => r.data),
+  create: (data: any) => api.post('/admin/plans', data).then(r => r.data),
+  update: (id: string, data: any) => api.put(`/admin/plans/${id}`, data).then(r => r.data),
+  remove: (id: string) => api.delete(`/admin/plans/${id}`).then(r => r.data),
+};
+
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 export const authApi = {
   register: (data: any) => api.post('/auth/register', data).then(r => r.data),
@@ -112,6 +120,12 @@ export const adminApi = {
   organizations: () => api.get('/admin/organizations').then(r => r.data),
   updateOrg: (id: string, data: any) => api.put(`/admin/organizations/${id}`, data).then(r => r.data),
   recordPayment: (id: string) => api.post(`/admin/organizations/${id}/pay`).then(r => r.data),
+  plans: {
+    list: () => plansApi.adminList(),
+    create: (data: any) => plansApi.create(data),
+    update: (id: string, data: any) => plansApi.update(id, data),
+    remove: (id: string) => plansApi.remove(id),
+  },
 };
 
 // ─── PDF Download Helper ──────────────────────────────────────────────────────

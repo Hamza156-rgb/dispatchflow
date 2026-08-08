@@ -18,6 +18,7 @@ import {
 import { errorHandler } from './middleware/errorHandler';
 import { isLoadBoardEnabled, isMockMode } from './services/loadboard';
 import { logger } from './utils/logger';
+import { prisma } from './utils/prisma';
 
 dotenv.config();
 
@@ -86,6 +87,14 @@ app.get('/api/config', (req, res) => {
       mock: isMockMode(),
     },
   });
+});
+
+// Public pricing catalog used by landing/register and admin plan management.
+app.get('/api/plans', async (_req, res, next) => {
+  try {
+    const plans = await prisma.pricingPlan.findMany({ where: { active: true }, orderBy: [{ sortOrder: 'asc' }, { price: 'asc' }] });
+    res.json({ plans });
+  } catch (err) { next(err); }
 });
 
 // Error handling
