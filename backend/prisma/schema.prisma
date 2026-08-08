@@ -37,9 +37,36 @@ model User {
   clients     Client[]
   invoices    Invoice[]
   loads       Load[]
+  loadBoardCredentials LoadBoardCredential[]
 
   @@index([email])
   @@index([ownerId])
+}
+
+// A dispatcher's own load-board account (e.g. their DAT subscription).
+// Credentials are per-user, not per-workspace: load boards license access by
+// seat, so every dispatcher connects the subscription they personally hold.
+model LoadBoardCredential {
+  id           String    @id @default(cuid())
+  provider     String                        // "DAT" — more providers later
+  accountLabel String?                       // shown in the UI ("DAT — dispatch@acme.com")
+  // AES-256-GCM ciphertext. Never leaves the backend, never sent to the client.
+  usernameEnc  String
+  secretEnc    String
+  // Cached provider access token so we don't re-authenticate on every search.
+  tokenEnc     String?
+  tokenExpiry  DateTime?
+  lastUsedAt   DateTime?
+  lastError    String?                       // last auth/search failure, surfaced in Settings
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, provider])
+  @@index([userId])
+  @@index([userId, provider, updatedAt])
 }
 
 model Client {
@@ -64,6 +91,7 @@ model Client {
 
   @@index([userId])
   @@index([companyName])
+  @@index([userId, companyName])
 }
 
 model Invoice {
@@ -92,9 +120,11 @@ model Invoice {
 
   @@unique([userId, invoiceNumber])
   @@index([userId])
+  @@index([userId, createdAt])
+  @@index([userId, status])
   @@index([clientId])
-  @@index([status])
-  @@index([dueDate])
+  @@index([userId, dueDate])
+  @@index([userId, clientId])
 }
 
 model InvoiceItem {
@@ -150,6 +180,9 @@ model Load {
   status        LoadStatus    @default(PENDING)
   paymentStatus LoadPaymentStatus @default(UNPAID)
   notes         String?
+  // Provenance — where this load came from
+  source        LoadSource    @default(MANUAL)
+  externalId    String?       // provider's own load id; dedupes repeat imports
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
@@ -159,10 +192,16 @@ model Load {
   client        Client        @relation(fields: [clientId], references: [id])
 
   @@unique([userId, loadNumber])
+  // Postgres treats NULLs as distinct, so manual loads (externalId = null)
+  // are unconstrained while imported ones can only land once per user.
+  @@unique([userId, externalId])
   @@index([userId])
+  @@index([userId, createdAt])
+  @@index([userId, status])
+  @@index([userId, paymentStatus])
+  @@index([userId, pickupAt])
+  @@index([userId, clientId])
   @@index([clientId])
-  @@index([status])
-  @@index([paymentStatus])
 }
 
 enum LoadStatus {
@@ -175,6 +214,13 @@ enum LoadStatus {
 enum LoadPaymentStatus {
   UNPAID
   PAID
+}
+
+enum LoadSource {
+  MANUAL   // typed into the load form
+  CSV      // bulk CSV upload
+  PASTE    // pasted from an email / load sheet and parsed
+  DAT      // imported from the DAT load board API
 }
 
 enum InvoiceStatus {

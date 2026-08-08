@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/authStore';
+import { useAppConfig } from './hooks/useApi';
 import Layout from './components/layout/Layout';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
@@ -12,6 +13,7 @@ import CreateInvoicePage from './pages/CreateInvoicePage';
 import ReportsPage from './pages/ReportsPage';
 import InsightsPage from './pages/InsightsPage';
 import LoadsPage from './pages/LoadsPage';
+import LoadBoardPage from './pages/LoadBoardPage';
 import SettingsPage from './pages/SettingsPage';
 import LandingPage from './pages/LandingPage';
 import TeamPage from './pages/TeamPage';
@@ -34,7 +36,21 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+/** Renders a page only where this deployment has the feature turned on. */
+function FeatureRoute({ enabled, children }: { enabled?: boolean; children: React.ReactNode }) {
+  // While config loads, `enabled` is undefined — wait rather than bouncing the
+  // user off a page they're allowed to see.
+  if (enabled === undefined) return null;
+  if (!enabled) return <Navigate to="/loads" replace />;
+  return <>{children}</>;
+}
+
 export default function App() {
+  const { data: config, isError } = useAppConfig();
+  // If config can't be fetched, treat optional features as off rather than
+  // leaving the route stuck waiting on an answer that isn't coming.
+  const loadBoardEnabled = isError ? false : config?.loadBoard.enabled;
+
   return (
     <Routes>
       {/* Public marketing site */}
@@ -48,6 +64,9 @@ export default function App() {
         <Route path="/clients" element={<ClientsPage />} />
         <Route path="/clients/:id" element={<ClientDetailPage />} />
         <Route path="/loads" element={<LoadsPage />} />
+        <Route path="/load-board" element={
+          <FeatureRoute enabled={loadBoardEnabled}><LoadBoardPage /></FeatureRoute>
+        } />
         <Route path="/invoices" element={<InvoicesPage />} />
         <Route path="/invoices/new" element={<CreateInvoicePage />} />
         <Route path="/invoices/:id" element={<InvoiceDetailPage />} />

@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { clientsApi, invoicesApi, paymentsApi, reportsApi, profileApi, loadsApi, teamApi, adminApi, downloadInvoicePdf } from '../lib/api';
-import type { ClientPayload, CreateInvoicePayload, PaymentPayload, ProfilePayload, LoadPayload } from '../types';
+import { clientsApi, invoicesApi, paymentsApi, reportsApi, profileApi, loadsApi, loadBoardApi, configApi, teamApi, adminApi, downloadInvoicePdf } from '../lib/api';
+import type { AppConfig, ClientPayload, CreateInvoicePayload, PaymentPayload, ProfilePayload, LoadPayload, LoadBoardResult, LoadBoardSearchParams, LoadBoardStatus, LoadBoardSearchResponse, ParsedLoadResponse } from '../types';
 
 // ─── Query Keys ───────────────────────────────────────────────────────────────
 export const QK = {
@@ -17,6 +17,7 @@ export const useClients = (params?: { page?: number; limit?: number; search?: st
   useQuery({
     queryKey: QK.clients(params),
     queryFn: () => clientsApi.list(params),
+    staleTime: 30_000,
   });
 
 export const useClient = (id: string) =>
@@ -68,6 +69,7 @@ export const useInvoices = (params?: {
   useQuery({
     queryKey: QK.invoices(params),
     queryFn: () => invoicesApi.list(params),
+    staleTime: 20_000,
   });
 
 export const useInvoice = (id: string) =>
@@ -167,6 +169,7 @@ export const useLoads = (params?: { page?: number; limit?: number; status?: stri
   useQuery({
     queryKey: ['loads', params],
     queryFn: () => loadsApi.list(params),
+    staleTime: 20_000,
   });
 
 export const useCreateLoad = () => {
@@ -201,9 +204,62 @@ export const useBulkCreateLoads = () => {
   });
 };
 
+// ─── App config ───────────────────────────────────────────────────────────────
+// Which optional features this deployment turns on. Never changes at runtime,
+// so fetch once and keep it — the nav reads it on every render.
+export const useAppConfig = () =>
+  useQuery<AppConfig>({
+    queryKey: ['config'],
+    queryFn: () => configApi.get(),
+    staleTime: Infinity,
+    retry: 1,
+  });
+
+// ─── Load board (DAT) ─────────────────────────────────────────────────────────
+export const useLoadBoardStatus = () =>
+  useQuery<LoadBoardStatus>({ queryKey: ['loadboard', 'status'], queryFn: () => loadBoardApi.status() });
+
+export const useConnectLoadBoard = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { username: string; password?: string; label?: string }) => loadBoardApi.connect(data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['loadboard', 'status'] }),
+  });
+};
+
+export const useDisconnectLoadBoard = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => loadBoardApi.disconnect(),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['loadboard'] }),
+  });
+};
+
+// A mutation, not a query: searches are metered against the customer's own
+// board subscription, so they only ever run when the dispatcher asks.
+export const useSearchLoadBoard = () =>
+  useMutation<LoadBoardSearchResponse, any, LoadBoardSearchParams>({
+    mutationFn: (params) => loadBoardApi.search(params),
+  });
+
+export const useImportLoadBoardResults = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (results: LoadBoardResult[]) => loadBoardApi.import(results),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['loads'] });
+      qc.invalidateQueries({ queryKey: ['clients'] });
+      qc.invalidateQueries({ queryKey: ['reports'] });
+    },
+  });
+};
+
+export const useParseLoadText = () =>
+  useMutation<ParsedLoadResponse, any, string>({ mutationFn: (text) => loadBoardApi.parse(text) });
+
 // ─── Team ─────────────────────────────────────────────────────────────────────
 export const useTeam = () =>
-  useQuery({ queryKey: ['team'], queryFn: () => teamApi.list() });
+  useQuery({ queryKey: ['team'], queryFn: () => teamApi.list(), staleTime: 60_000 });
 
 export const useAddMember = () => {
   const qc = useQueryClient();
@@ -223,7 +279,7 @@ export const useRemoveMember = () => {
 
 // ─── Super Admin ──────────────────────────────────────────────────────────────
 export const useOrganizations = () =>
-  useQuery({ queryKey: ['admin', 'organizations'], queryFn: () => adminApi.organizations() });
+  useQuery({ queryKey: ['admin', 'organizations'], queryFn: () => adminApi.organizations(), staleTime: 60_000 });
 
 export const useUpdateOrganization = () => {
   const qc = useQueryClient();

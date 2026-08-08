@@ -11,10 +11,12 @@ import {
   reportsRouter,
   profileRouter,
   loadsRouter,
+  loadBoardRouter,
   teamRouter,
   adminRouter,
 } from './routes';
 import { errorHandler } from './middleware/errorHandler';
+import { isLoadBoardEnabled, isMockMode } from './services/loadboard';
 import { logger } from './utils/logger';
 
 dotenv.config();
@@ -65,12 +67,25 @@ app.use('/api/payments', paymentsRouter);
 app.use('/api/reports', reportsRouter);
 app.use('/api/profile', profileRouter);
 app.use('/api/loads', loadsRouter);
+app.use('/api/loadboard', loadBoardRouter);
 app.use('/api/team', teamRouter);
 app.use('/api/admin', adminRouter);
 
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Which optional features this deployment exposes. Read before login so the
+// nav can be built without flashing a page the user will never reach.
+app.get('/api/config', (req, res) => {
+  res.json({
+    loadBoard: {
+      enabled: isLoadBoardEnabled(),
+      provider: 'DAT',
+      mock: isMockMode(),
+    },
+  });
 });
 
 // Error handling

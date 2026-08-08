@@ -1,9 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import bcrypt from 'bcryptjs';
-import { PrismaClient } from '@prisma/client';
 import { PLAN_LIMITS } from './auth';
-
-const prisma = new PrismaClient();
+import { prisma } from '../utils/prisma';
 
 const orgWhere = (tenantId: string) => ({ OR: [{ id: tenantId }, { ownerId: tenantId }] });
 

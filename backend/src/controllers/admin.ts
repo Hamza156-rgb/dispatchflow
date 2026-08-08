@@ -1,8 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { PLAN_LIMITS, PLAN_PRICES } from './auth';
-
-const prisma = new PrismaClient();
+import { prisma } from '../utils/prisma';
 
 const num = (v: any) => Number(v || 0);
 

@@ -1,5 +1,6 @@
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
+import { useAppConfig } from '../../hooks/useApi';
 
 interface SidebarProps {
   collapsed: boolean;
@@ -16,6 +17,7 @@ const NAV = [
   { to: '/dashboard', label: 'Dashboard', icon: '📊' },
   { to: '/clients', label: 'Clients', icon: '🏢' },
   { to: '/loads', label: 'Loads', icon: '🚚' },
+  { to: '/load-board', label: 'Load Board', icon: '🔎' },
   { to: '/invoices', label: 'Invoices', icon: '📄' },
   { to: '/reports', label: 'Reports', icon: '📈' },
   { to: '/insights', label: 'Insights', icon: '✨' },
@@ -40,7 +42,12 @@ function Avatar({ name, size = 32 }: { name: string; size?: number }) {
 
 export default function Sidebar({ collapsed, onCollapse, mobile = false, open = false, onNavigate }: SidebarProps) {
   const { user } = useAuthStore();
+  const { data: config } = useAppConfig();
   const location = useLocation();
+
+  // Load Board only appears where a board is actually wired up. Default to
+  // hidden while config is loading so it never flashes in and out.
+  const nav = NAV.filter((item) => item.to !== '/load-board' || config?.loadBoard.enabled);
 
   // On mobile the drawer is always full-width (never the collapsed rail).
   const isCollapsed = mobile ? false : collapsed;
@@ -97,7 +104,7 @@ export default function Sidebar({ collapsed, onCollapse, mobile = false, open = 
 
       {/* Nav */}
       <nav style={{ flex: 1, padding: '10px 8px' }}>
-        {(user?.isSuperAdmin ? [ADMIN_NAV] : NAV).map(item => (
+        {(user?.isSuperAdmin ? [ADMIN_NAV] : nav).map(item => (
           <NavLink key={item.to} to={item.to}
             onClick={onNavigate}
             title={isCollapsed ? item.label : undefined}

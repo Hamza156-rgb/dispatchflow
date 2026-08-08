@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { useLoads, useClients, useCreateLoad, useUpdateLoad, useDeleteLoad, useBulkCreateLoads } from '../hooks/useApi';
+import { useLoads, useClients, useCreateLoad, useUpdateLoad, useDeleteLoad, useBulkCreateLoads, useParseLoadText } from '../hooks/useApi';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { Button, Input, Select, Textarea, FormField, Modal, Spinner, EmptyState, Pagination, Toast, Avatar } from '../components/ui';
-import type { Load, LoadPayload } from '../types';
+import type { Load, LoadPayload, ParsedLoadResponse } from '../types';
 
 // Columns supported by the CSV importer (order used in the template)
 const CSV_COLUMNS = ['client', 'originCity', 'originState', 'destCity', 'destState', 'pickupAt', 'deliveryAt', 'miles', 'rate', 'equipment', 'driver', 'referenceNumber', 'status', 'paymentStatus', 'notes'];
@@ -39,6 +39,14 @@ const STATUS_STYLE: Record<string, { c: string; bg: string; label: string }> = {
   CANCELLED: { c: '#6b7280', bg: '#f3f4f6', label: 'Cancelled' },
 };
 
+// Field names the parser returns → human labels, for the paste preview
+const PASTE_LABELS: Record<string, string> = {
+  originCity: 'Origin city', originState: 'Origin state', destCity: 'Dest city', destState: 'Dest state',
+  pickupAt: 'Pickup', deliveryAt: 'Delivery', miles: 'Miles', rate: 'Rate', equipment: 'Equipment',
+  weight: 'Weight', commodity: 'Commodity', driver: 'Driver', referenceNumber: 'Reference #',
+  client: 'Broker / client', notes: 'Notes',
+};
+
 const toLocalInput = (iso?: string) => (iso ? new Date(iso).toISOString().slice(0, 16) : '');
 const fmtDateTime = (iso?: string) => iso ? new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—';
 
@@ -72,11 +80,17 @@ export default function LoadsPage() {
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState<Load | null>(null);
   const [form, setForm] = useState<LoadPayload>(EMPTY);
-  const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
+  const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' | 'info' } | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [importModal, setImportModal] = useState(false);
   const [importRows, setImportRows] = useState<any[]>([]);
   const [importErr, setImportErr] = useState('');
+  const [pasteModal, setPasteModal] = useState(false);
+  const [pasteText, setPasteText] = useState('');
+  const [parsed, setParsed] = useState<ParsedLoadResponse | null>(null);
+  // Fields the parser filled in. Surfaced as a count on the review form so the
+  // dispatcher knows the values came from a machine and deserve a second look.
+  const [prefilled, setPrefilled] = useState<Set<string>>(new Set());
 
   const { data, isLoading } = useLoads({
     page, limit: 20,
@@ -109,6 +123,7 @@ export default function LoadsPage() {
   const updateLoad = useUpdateLoad();
   const deleteLoad = useDeleteLoad();
   const bulkCreate = useBulkCreateLoads();
+  const parseText = useParseLoadText();
 
   const summary = data?.summary ?? { totalLoads: 0, active: 0, delivered: 0, unpaidAmount: 0, totalRevenue: 0 };
   const set = (k: keyof LoadPayload, v: any) => setForm((f) => ({ ...f, [k]: v }));
@@ -151,9 +166,51 @@ export default function LoadsPage() {
     }
   };
 
-  const openNew = () => { setEditing(null); setForm(EMPTY); setModal(true); };
+  // ── Paste import ────────────────────────────────────────────
+  const runParse = async () => {
+    try {
+      setParsed(await parseText.mutateAsync(pasteText));
+    } catch (e: any) {
+      setToast({ msg: e?.response?.data?.error || 'Could not read that text', type: 'error' });
+    }
+  };
+
+  /** Push the parsed fields into the normal load form so it's reviewed before saving. */
+  const usePasted = () => {
+    if (!parsed) return;
+    const f = parsed.fields;
+    // Match the broker name to an existing client; unmatched leaves the picker
+    // empty rather than silently creating a duplicate client.
+    const client = f.client
+      ? clientsData?.clients.find((c: any) => c.companyName.trim().toLowerCase() === f.client!.trim().toLowerCase())
+      : undefined;
+
+    setEditing(null);
+    setForm({
+      ...EMPTY,
+      clientId: client?.id ?? '',
+      originCity: f.originCity ?? '', originState: f.originState ?? '',
+      destCity: f.destCity ?? '', destState: f.destState ?? '',
+      pickupAt: toLocalInput(f.pickupAt), deliveryAt: toLocalInput(f.deliveryAt),
+      miles: f.miles != null ? String(f.miles) : '',
+      rate: f.rate != null ? String(f.rate) : '',
+      equipment: f.equipment ?? 'Dry Van',
+      referenceNumber: f.referenceNumber ?? '',
+      notes: f.notes ?? '',
+      source: 'PASTE',
+    });
+    setPrefilled(new Set([...parsed.matched, ...(client ? ['clientId'] : [])]));
+    setPasteModal(false);
+    setModal(true);
+    if (f.client && !client) {
+      setToast({ msg: `No client named "${f.client}" — pick one or add it first`, type: 'info' });
+    }
+  };
+
+  const openNew = () => { setEditing(null); setForm(EMPTY); setPrefilled(new Set()); setModal(true); };
   const openEdit = (l: Load) => {
     setEditing(l);
+    setPrefilled(new Set());
     setForm({
       clientId: l.clientId, originCity: l.originCity || '', originState: l.originState || '',
       destCity: l.destCity || '', destState: l.destState || '',
@@ -210,6 +267,30 @@ export default function LoadsPage() {
         <p style={{ margin: '4px 0 0', color: 'var(--color-muted)', fontSize: 14 }}>Track every shipment from booked to delivered to paid.</p>
       </div>
 
+      <div style={{
+        background: 'linear-gradient(135deg, #eff6ff 0%, #e0f2fe 100%)',
+        border: '1.5px solid #93c5fd',
+        borderRadius: 16,
+        padding: '16px 18px',
+        marginBottom: 18,
+        display: 'flex',
+        alignItems: isMobile ? 'flex-start' : 'center',
+        justifyContent: 'space-between',
+        gap: 14,
+        flexWrap: 'wrap',
+      }}>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontWeight: 800, fontSize: 14, color: '#1e3a8a' }}>Free data import</div>
+          <div style={{ fontSize: 13, color: '#1d4ed8', lineHeight: 1.6, marginTop: 4 }}>
+            No API endpoints needed. Paste a load email or upload a CSV, review the fields, then save the load into your CRM.
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <Button variant="secondary" onClick={() => { setPasteText(''); setParsed(null); setPasteModal(true); }}>📋 Paste Load</Button>
+          <Button variant="secondary" onClick={() => { setImportRows([]); setImportErr(''); setImportModal(true); }}>⬆️ Import CSV</Button>
+        </div>
+      </div>
+
       {/* Summary cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 22 }}>
         <StatCard icon="📦" label="Total Loads" value={String(summary.totalLoads)} accent="var(--color-text)" bg="#e0e7ff" />
@@ -232,8 +313,7 @@ export default function LoadsPage() {
               </Select>
             </div>
           </div>
-          <div style={{ display: 'flex', gap: 10 }}>
-            <Button variant="secondary" onClick={() => { setImportRows([]); setImportErr(''); setImportModal(true); }}>⬆️ Import CSV</Button>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             <Button onClick={openNew}>+ New Load</Button>
           </div>
         </div>
@@ -350,6 +430,11 @@ export default function LoadsPage() {
 
       {/* Add / Edit modal */}
       <Modal open={modal} onClose={() => setModal(false)} title={editing ? `Edit ${editing.loadNumber}` : 'New Load'} width={680}>
+        {!editing && prefilled.size > 0 && (
+          <div style={{ background: '#dbeafe', color: '#1d4ed8', padding: '10px 14px', borderRadius: 8, fontSize: 13, marginBottom: 16, lineHeight: 1.5 }}>
+            📋 {prefilled.size} field{prefilled.size !== 1 ? 's' : ''} filled in from your pasted text — check them before saving.
+          </div>
+        )}
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16 }}>
           <FormField label="Client" required>
             <Select value={form.clientId} onChange={(e) => set('clientId', e.target.value)}>
@@ -408,6 +493,61 @@ export default function LoadsPage() {
         <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 8 }}>
           <Button type="button" variant="secondary" onClick={() => setModal(false)}>Cancel</Button>
           <Button onClick={save} loading={createLoad.isPending || updateLoad.isPending}>{editing ? 'Save Changes' : 'Create Load'}</Button>
+        </div>
+      </Modal>
+
+      {/* Paste-a-load modal */}
+      <Modal open={pasteModal} onClose={() => setPasteModal(false)} title="Paste load details" width={640}>
+        <p style={{ margin: '0 0 14px', fontSize: 13, color: 'var(--color-muted)', lineHeight: 1.6 }}>
+          Paste a rate confirmation, broker email or text message and we'll pull out the lane, dates, rate
+          and equipment. Nothing is saved until you review it on the next screen.
+        </p>
+
+        <Textarea rows={9} value={pasteText} onChange={(e) => { setPasteText(e.target.value); setParsed(null); }}
+          placeholder={'Origin: Chicago, IL\nDestination: Gary, IN\nPickup: 07/15/2026 09:00\nRate: $850\nEquipment: Flatbed\nBroker: Atlas Steel Corporation'}
+          style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: 13 }} />
+
+        {parsed && (
+          <div style={{ marginTop: 16 }}>
+            {parsed.matched.length === 0 ? (
+              <div style={{ background: '#fee2e2', color: '#b91c1c', padding: '10px 14px', borderRadius: 8, fontSize: 13 }}>
+                ⚠️ Nothing recognisable in that text. Try including labels like "Rate:", "Pickup:" or a lane like "Chicago, IL → Gary, IN".
+              </div>
+            ) : (
+              <>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-text)', marginBottom: 8 }}>
+                  Found {parsed.matched.length} field{parsed.matched.length !== 1 ? 's' : ''}:
+                </div>
+                <div style={{ border: '1.5px solid var(--color-border)', borderRadius: 10, overflow: 'hidden' }}>
+                  {Object.entries(parsed.fields).map(([k, v]) => (
+                    <div key={k} style={{ display: 'flex', gap: 12, padding: '8px 14px', borderBottom: '1px solid var(--color-border)', fontSize: 13 }}>
+                      <span style={{ width: 130, flexShrink: 0, color: 'var(--color-muted)', fontWeight: 600 }}>{PASTE_LABELS[k] ?? k}</span>
+                      <span style={{ color: 'var(--color-text)', whiteSpace: 'pre-wrap', minWidth: 0, wordBreak: 'break-word' }}>
+                        {k === 'pickupAt' || k === 'deliveryAt' ? fmtDateTime(String(v)) : String(v)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                {parsed.unmatched.length > 0 && (
+                  <details style={{ marginTop: 10 }}>
+                    <summary style={{ fontSize: 12, color: 'var(--color-muted)', cursor: 'pointer' }}>
+                      {parsed.unmatched.length} line{parsed.unmatched.length !== 1 ? 's' : ''} weren't recognised
+                    </summary>
+                    <div style={{ fontSize: 12, color: 'var(--color-muted)', marginTop: 6, paddingLeft: 14, lineHeight: 1.7 }}>
+                      {parsed.unmatched.map((l, i) => <div key={i}>{l}</div>)}
+                    </div>
+                  </details>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
+        <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 18 }}>
+          <Button variant="secondary" onClick={() => setPasteModal(false)}>Cancel</Button>
+          {parsed && parsed.matched.length > 0
+            ? <Button onClick={usePasted}>Review &amp; create load →</Button>
+            : <Button onClick={runParse} loading={parseText.isPending} disabled={!pasteText.trim()}>Read details</Button>}
         </div>
       </Modal>
 

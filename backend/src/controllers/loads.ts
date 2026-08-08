@@ -1,7 +1,12 @@
 import { Request, Response, NextFunction } from 'express';
-import { PrismaClient, LoadStatus, LoadPaymentStatus } from '@prisma/client';
+import { LoadStatus, LoadPaymentStatus, LoadSource } from '@prisma/client';
+import { prisma } from '../utils/prisma';
 
-const prisma = new PrismaClient();
+// Where a load came from. Client-supplied, so validate against the enum —
+// DAT is excluded here: only the load-board importer may claim that source.
+const USER_SOURCES: LoadSource[] = ['MANUAL', 'PASTE'];
+const toSource = (v: any): LoadSource =>
+  USER_SOURCES.includes(String(v).toUpperCase() as LoadSource) ? (String(v).toUpperCase() as LoadSource) : 'MANUAL';
 
 const num = (v: any) => Number(v || 0);
 
@@ -33,7 +38,7 @@ export const getLoads = async (req: Request, res: Response, next: NextFunction) 
       ];
     }
 
-    const [loads, total, all] = await Promise.all([
+    const [loads, total, summaryRows] = await Promise.all([
       prisma.load.findMany({
         where,
         include: { client: { select: { id: true, companyName: true } } },
@@ -42,17 +47,29 @@ export const getLoads = async (req: Request, res: Response, next: NextFunction) 
         take: Number(limit),
       }),
       prisma.load.count({ where }),
-      // For summary cards — across ALL of the user's loads (not just this page/filter)
-      prisma.load.findMany({ where: { userId }, select: { status: true, paymentStatus: true, rate: true } }),
+      prisma.load.groupBy({
+        by: ['status', 'paymentStatus'],
+        where: { userId },
+        _count: { _all: true },
+        _sum: { rate: true },
+      }),
     ]);
 
+    const totals = summaryRows.reduce(
+      (acc, row) => {
+        acc.totalLoads += row._count._all;
+        acc.pending += row.status === 'PENDING' ? row._count._all : 0;
+        acc.active += row.status === 'ACTIVE' ? row._count._all : 0;
+        acc.delivered += row.status === 'DELIVERED' ? row._count._all : 0;
+        acc.totalRevenue += row.status !== 'CANCELLED' ? Number(row._sum.rate || 0) : 0;
+        acc.unpaidAmount += row.status !== 'CANCELLED' && row.paymentStatus === 'UNPAID' ? Number(row._sum.rate || 0) : 0;
+        return acc;
+      },
+      { totalLoads: 0, pending: 0, active: 0, delivered: 0, totalRevenue: 0, unpaidAmount: 0 },
+    );
+
     const summary = {
-      totalLoads: all.length,
-      pending: all.filter((l) => l.status === 'PENDING').length,
-      active: all.filter((l) => l.status === 'ACTIVE').length,
-      delivered: all.filter((l) => l.status === 'DELIVERED').length,
-      totalRevenue: all.filter((l) => l.status !== 'CANCELLED').reduce((s, l) => s + num(l.rate), 0),
-      unpaidAmount: all.filter((l) => l.paymentStatus === 'UNPAID' && l.status !== 'CANCELLED').reduce((s, l) => s + num(l.rate), 0),
+      ...totals,
     };
 
     res.json({ loads, total, page: Number(page), totalPages: Math.ceil(total / Number(limit)), summary });
@@ -106,6 +123,7 @@ export const createLoad = async (req: Request, res: Response, next: NextFunction
         status: (b.status as LoadStatus) || 'PENDING',
         paymentStatus: (b.paymentStatus as LoadPaymentStatus) || 'UNPAID',
         notes: b.notes || null,
+        source: toSource(b.source),
       },
       include: { client: { select: { id: true, companyName: true } } },
     });
@@ -166,6 +184,7 @@ export const bulkCreateLoads = async (req: Request, res: Response, next: NextFun
             equipment: r.equipment || null, driver: r.driver || null,
             referenceNumber: r.referenceNumber || null, notes: r.notes || null,
             status: status as LoadStatus, paymentStatus: paymentStatus as LoadPaymentStatus,
+            source: 'CSV',
           },
         });
         created += 1;

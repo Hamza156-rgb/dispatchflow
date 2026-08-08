@@ -1,12 +1,10 @@
 // routes/clients.ts
 import { Router } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { authenticate, requireSuperAdmin } from '../middleware/errorHandler';
 import { buildMe } from '../controllers/auth';
 import { getTeam, addMember, removeMember } from '../controllers/team';
 import { listOrganizations, updateOrganization, recordPayment } from '../controllers/admin';
-
-const prisma = new PrismaClient();
+import { prisma } from '../utils/prisma';
 export const clientsRouter = Router();
 clientsRouter.use(authenticate);
 
@@ -180,6 +178,46 @@ loadsRouter.post('/bulk', bulkCreateLoads);
 loadsRouter.post('/', createLoad);
 loadsRouter.put('/:id', updateLoad);
 loadsRouter.delete('/:id', deleteLoad);
+
+// routes/loadboard.ts — external load boards (DAT) + paste parsing
+import rateLimit from 'express-rate-limit';
+import { getStatus, connect, disconnect, search as searchBoard, importResults, parseText } from '../controllers/loadboard';
+
+import { isLoadBoardEnabled } from '../services/loadboard';
+
+export const loadBoardRouter = IRouter();
+
+// Hiding the nav item isn't enough — while the feature is off these endpoints
+// must not accept credentials either. 404, not 403: the feature doesn't exist
+// as far as this deployment is concerned.
+loadBoardRouter.use((req, res, next) => {
+  // Text parsing is local, needs no provider, and powers "Paste Load" on the
+  // Loads page — it stays available whether or not a load board is connected.
+  if (req.path === '/parse') return next();
+  if (!isLoadBoardEnabled()) return res.status(404).json({ error: 'Load board is not enabled', code: 'LOADBOARD_DISABLED' });
+  next();
+});
+
+loadBoardRouter.use(authenticate);
+
+// Providers meter API calls per subscription, and a runaway UI poll would burn
+// the customer's quota. Cap searches per dispatcher, not per IP — a whole
+// office behind one NAT would otherwise throttle each other.
+const searchLimiter = rateLimit({
+  windowMs: 60_000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => (req as any).userId || req.ip,
+  message: { error: 'Too many load board searches — wait a moment before searching again.' },
+});
+
+loadBoardRouter.get('/status', getStatus);
+loadBoardRouter.post('/connect', connect);
+loadBoardRouter.delete('/connect', disconnect);
+loadBoardRouter.post('/search', searchLimiter, searchBoard);
+loadBoardRouter.post('/import', importResults);
+loadBoardRouter.post('/parse', parseText);
 
 // routes/reports.ts
 import { getReports, getDashboard, getInsights } from '../controllers/reports';

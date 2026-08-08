@@ -26,6 +26,11 @@ api.interceptors.response.use(
   }
 );
 
+// ─── App config (optional features this deployment exposes) ───────────────────
+export const configApi = {
+  get: () => api.get('/config').then(r => r.data),
+};
+
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 export const authApi = {
   register: (data: any) => api.post('/auth/register', data).then(r => r.data),
@@ -69,6 +74,18 @@ export const loadsApi = {
   update: (id: string, data: any) => api.put(`/loads/${id}`, data).then(r => r.data),
   delete: (id: string) => api.delete(`/loads/${id}`).then(r => r.data),
   bulkCreate: (rows: any[]) => api.post('/loads/bulk', { rows }).then(r => r.data),
+};
+
+// ─── Load board (DAT) ─────────────────────────────────────────────────────────
+export const loadBoardApi = {
+  status: () => api.get('/loadboard/status').then(r => r.data),
+  connect: (data: { username: string; password?: string; label?: string }) =>
+    api.post('/loadboard/connect', data).then(r => r.data),
+  disconnect: () => api.delete('/loadboard/connect').then(r => r.data),
+  // Board searches hit a third-party API — allow longer than the 15s default.
+  search: (params: any) => api.post('/loadboard/search', params, { timeout: 30000 }).then(r => r.data),
+  import: (results: any[]) => api.post('/loadboard/import', { results }).then(r => r.data),
+  parse: (text: string) => api.post('/loadboard/parse', { text }).then(r => r.data),
 };
 
 // ─── Reports ──────────────────────────────────────────────────────────────────

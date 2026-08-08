@@ -1,7 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '../utils/prisma';
 
 export const getReports = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -15,24 +13,19 @@ export const getReports = async (req: Request, res: Response, next: NextFunction
     const invoices = await prisma.invoice.findMany({
       where: {
         userId,
-        status: { in: ['PAID'] },
+        status: 'PAID',
         paidAt: { gte: startOfYear, lte: endOfYear },
       },
       select: { totalAmount: true, paidAt: true, clientId: true },
     });
 
-    const monthlyRevenue = Array.from({ length: 12 }, (_, i) => {
-      const month = i + 1;
-      const monthInvoices = invoices.filter(inv => {
-        const d = new Date(inv.paidAt!);
-        return d.getMonth() + 1 === month;
-      });
-      return {
-        month,
-        revenue: monthInvoices.reduce((sum, inv) => sum + Number(inv.totalAmount), 0),
-        count: monthInvoices.length,
-      };
-    });
+    const monthlyTotals = Array.from({ length: 12 }, () => ({ revenue: 0, count: 0 }));
+    for (const inv of invoices) {
+      const month = new Date(inv.paidAt!).getMonth();
+      monthlyTotals[month].revenue += Number(inv.totalAmount);
+      monthlyTotals[month].count += 1;
+    }
+    const monthlyRevenue = monthlyTotals.map((m, idx) => ({ month: idx + 1, ...m }));
 
     // Status breakdown
     const statusCounts = await prisma.invoice.groupBy({
@@ -45,7 +38,7 @@ export const getReports = async (req: Request, res: Response, next: NextFunction
     // Top clients by revenue
     const allPaidInvoices = await prisma.invoice.findMany({
       where: { userId, status: 'PAID' },
-      include: { client: { select: { id: true, companyName: true } } },
+      select: { totalAmount: true, clientId: true, client: { select: { id: true, companyName: true } } },
     });
 
     const clientRevenue: Record<string, { name: string; revenue: number; count: number }> = {};
@@ -88,7 +81,13 @@ export const getDashboard = async (req: Request, res: Response, next: NextFuncti
       }),
       prisma.invoice.findMany({
         where: { userId },
-        include: { client: { select: { companyName: true } } },
+        select: {
+          id: true,
+          invoiceNumber: true,
+          status: true,
+          totalAmount: true,
+          client: { select: { companyName: true } },
+        },
         orderBy: { createdAt: 'desc' },
         take: 5,
       }),
@@ -116,7 +115,17 @@ export const getInsights = async (req: Request, res: Response, next: NextFunctio
 
     const invoices = await prisma.invoice.findMany({
       where: { userId },
-      include: { client: { select: { id: true, companyName: true } } },
+      select: {
+        id: true,
+        invoiceNumber: true,
+        issueDate: true,
+        dueDate: true,
+        status: true,
+        totalAmount: true,
+        paidAt: true,
+        clientId: true,
+        client: { select: { id: true, companyName: true } },
+      },
     });
 
     const num = (v: any) => Number(v || 0);

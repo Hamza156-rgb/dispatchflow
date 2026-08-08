@@ -182,6 +182,83 @@ export interface LoadPayload {
   status?: LoadStatus;
   paymentStatus?: LoadPaymentStatus;
   notes?: string;
+  /** How the load was entered. Server ignores anything but MANUAL/PASTE. */
+  source?: 'MANUAL' | 'PASTE';
+}
+
+// ─── App config ───────────────────────────────────────────────────────────────
+export interface AppConfig {
+  loadBoard: {
+    /** False on deployments with no live board — the whole section is hidden. */
+    enabled: boolean;
+    provider: string;
+    mock: boolean;
+  };
+}
+
+// ─── Load board (DAT) ─────────────────────────────────────────────────────────
+export interface LoadBoardStatus {
+  provider: string;
+  /** True while we're serving synthetic postings (no live API credentials). */
+  mock: boolean;
+  connected: boolean;
+  account: string | null;
+  label: string | null;
+  lastUsedAt: string | null;
+  lastError: string | null;
+}
+
+export interface LoadBoardSearchParams {
+  originCity?: string;
+  originState?: string;
+  destCity?: string;
+  destState?: string;
+  radius?: number;
+  equipment?: string;
+  pickupFrom?: string;
+  pickupTo?: string;
+  minRate?: number;
+  limit?: number;
+}
+
+export interface LoadBoardResult {
+  externalId: string;
+  originCity?: string;
+  originState?: string;
+  destCity?: string;
+  destState?: string;
+  pickupAt?: string;
+  deliveryAt?: string;
+  miles?: number;
+  rate?: number;
+  equipment?: string;
+  weight?: string;
+  commodity?: string;
+  companyName?: string;
+  contactPhone?: string;
+  contactEmail?: string;
+  referenceNumber?: string;
+  postedAt?: string;
+  notes?: string;
+  /** Load number if this posting is already in the CRM, else null. */
+  importedAs?: string | null;
+}
+
+export interface LoadBoardSearchResponse {
+  mock: boolean;
+  count: number;
+  results: LoadBoardResult[];
+}
+
+export interface ParsedLoadResponse {
+  fields: Partial<{
+    originCity: string; originState: string; destCity: string; destState: string;
+    pickupAt: string; deliveryAt: string; miles: number; rate: number;
+    equipment: string; weight: string; commodity: string; driver: string;
+    referenceNumber: string; client: string; notes: string;
+  }>;
+  matched: string[];
+  unmatched: string[];
 }
 
 // ─── API Responses ────────────────────────────────────────────────────────────
