@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { useAuthStore } from '../../store/authStore';
+import { AUTH_EXPIRED_EVENT, useAuthStore } from '../../store/authStore';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import Sidebar from './Sidebar';
 import TopBar from './TopBar';
@@ -20,6 +20,12 @@ export default function Layout() {
       navigate('/admin/overview', { replace: true });
     }
   }, [user?.isSuperAdmin, location.pathname, navigate]);
+
+  useEffect(() => {
+    const handleAuthExpired = () => navigate('/login', { replace: true });
+    window.addEventListener(AUTH_EXPIRED_EVENT, handleAuthExpired);
+    return () => window.removeEventListener(AUTH_EXPIRED_EVENT, handleAuthExpired);
+  }, [navigate]);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : 'light');

@@ -2,6 +2,13 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { User } from '../types';
 
+export const AUTH_EXPIRED_EVENT = 'df:auth-expired';
+
+export const clearAuthStorage = () => {
+  localStorage.removeItem('df_token');
+  localStorage.removeItem('df_user');
+};
+
 interface AuthState {
   user: User | null;
   token: string | null;
@@ -20,8 +27,7 @@ export const useAuthStore = create<AuthState>()(
         set({ user, token });
       },
       logout: () => {
-        localStorage.removeItem('df_token');
-        localStorage.removeItem('df_user');
+        clearAuthStorage();
         set({ user: null, token: null });
       },
       updateUser: (updates) =>

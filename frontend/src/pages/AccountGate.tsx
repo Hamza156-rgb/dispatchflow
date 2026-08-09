@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { authApi } from '../lib/api';
 import { useAuthStore } from '../store/authStore';
 
@@ -15,6 +16,7 @@ const PRICE: Record<string, number> = { STARTER: 20, GROWTH: 40, BUSINESS: 60 };
 
 export default function AccountGate({ status }: { status: 'PENDING' | 'SUSPENDED' }) {
   const { user, logout, updateUser } = useAuthStore();
+  const navigate = useNavigate();
   const [checking, setChecking] = useState(false);
 
   const refresh = async () => {
@@ -22,7 +24,7 @@ export default function AccountGate({ status }: { status: 'PENDING' | 'SUSPENDED
     try {
       const me = await authApi.me();
       updateUser(me);
-      if (me.accountStatus === 'ACTIVE') window.location.href = '/dashboard';
+      if (me.accountStatus === 'ACTIVE') navigate('/dashboard', { replace: true });
     } catch { /* ignore */ } finally { setChecking(false); }
   };
 
@@ -74,7 +76,7 @@ export default function AccountGate({ status }: { status: 'PENDING' | 'SUSPENDED
           </>
         )}
 
-        <button onClick={() => { logout(); window.location.href = '/login'; }}
+        <button onClick={() => { logout(); navigate('/login', { replace: true }); }}
           style={{ width: '100%', background: 'transparent', color: '#64748b', border: '1.5px solid #e2e8f0', borderRadius: 11, padding: '12px', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>
           Sign out
         </button>
