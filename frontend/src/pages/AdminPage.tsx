@@ -37,8 +37,6 @@ export default function AdminPage() {
   const updatePlan = useUpdatePlan();
   const deletePlan = useDeletePlan();
 
-  if (!user?.isSuperAdmin) return <div style={{ padding: 28, color: 'var(--color-muted)' }}>You don't have access to this page.</div>;
-
   const orgs = orgData?.organizations ?? [];
   const plans = planData?.plans ?? [];
 
@@ -49,6 +47,10 @@ export default function AdminPage() {
     mrr: orgs.reduce((s: number, o: any) => s + (o.mrr || 0), 0),
     users: orgs.reduce((s: number, o: any) => s + (o.userCount || 0), 0),
   }), [orgs]);
+
+  if (!user?.isSuperAdmin) {
+    return <div style={{ padding: 28, color: 'var(--color-muted)' }}>You don't have access to this page.</div>;
+  }
 
   const patchOrg = async (id: string, body: any, msg: string) => {
     setBusyId(id);
