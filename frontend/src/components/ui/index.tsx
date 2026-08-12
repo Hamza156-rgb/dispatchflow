@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { Icon, type IconName } from './icons';
 
 export { Icon };
@@ -107,6 +108,9 @@ export function IconButton({ icon, size = 16, tone = 'default', style, className
 // ─── Input ────────────────────────────────────────────────────────────────────
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   error?: string;
+  /** Marks the field invalid (red border) without printing a message — use when
+   *  the surrounding FormField already renders the error text. */
+  invalid?: boolean;
   /** Renders a leading icon inside the field. */
   icon?: IconName;
 }
@@ -119,14 +123,16 @@ const fieldBase: React.CSSProperties = {
 };
 
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(function Input(
-  { error, icon, style, ...props }, ref,
+  { error, invalid, icon, style, ...props }, ref,
 ) {
+  const bad = !!error || !!invalid;
   const field = (
     <input
       ref={ref}
+      aria-invalid={bad || undefined}
       style={{
         ...fieldBase,
-        border: `1px solid ${error ? 'var(--color-danger)' : 'var(--color-border-strong)'}`,
+        border: `1px solid ${bad ? 'var(--color-danger)' : 'var(--color-border-strong)'}`,
         paddingLeft: icon ? 36 : 13,
         ...style,
       }}
@@ -148,6 +154,55 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(function Inp
     </div>
   );
 });
+
+// ─── PasswordInput ────────────────────────────────────────────────────────────
+interface PasswordInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type'> {
+  error?: string;
+  invalid?: boolean;
+  /** Start revealed. Used where the value exists to be read back and passed on
+   *  (e.g. a temporary password an owner hands to a new team member). */
+  defaultVisible?: boolean;
+}
+
+export const PasswordInput = React.forwardRef<HTMLInputElement, PasswordInputProps>(
+  function PasswordInput({ error, invalid, defaultVisible = false, style, ...props }, ref) {
+    const [visible, setVisible] = React.useState(defaultVisible);
+    const bad = !!error || !!invalid;
+
+    return (
+      <div>
+        <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+          <input
+            ref={ref}
+            type={visible ? 'text' : 'password'}
+            aria-invalid={bad || undefined}
+            style={{
+              ...fieldBase,
+              border: `1px solid ${bad ? 'var(--color-danger)' : 'var(--color-border-strong)'}`,
+              paddingRight: 42,
+              ...style,
+            }}
+            {...props}
+          />
+          <button
+            type="button"
+            onClick={() => setVisible((v) => !v)}
+            aria-label={visible ? 'Hide password' : 'Show password'}
+            title={visible ? 'Hide password' : 'Show password'}
+            className="df-icon-btn"
+            style={{
+              position: 'absolute', right: 5, border: 'none', background: 'transparent',
+              padding: 6, boxShadow: 'none',
+            }}
+          >
+            <Icon name={visible ? 'eye-off' : 'eye'} size={16} />
+          </button>
+        </div>
+        {error && <FieldError message={error} />}
+      </div>
+    );
+  },
+);
 
 // ─── Textarea ─────────────────────────────────────────────────────────────────
 export const Textarea = React.forwardRef<HTMLTextAreaElement, React.TextareaHTMLAttributes<HTMLTextAreaElement>>(
@@ -383,7 +438,9 @@ export function Modal({ open, onClose, title, subtitle, children, width = 600 }:
 
   if (!open) return null;
 
-  return (
+  // Rendered into <body> so the dialog is always positioned against the viewport,
+  // never against a transformed/animated ancestor further up the page.
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
@@ -391,7 +448,7 @@ export function Modal({ open, onClose, title, subtitle, children, width = 600 }:
         position: 'fixed', inset: 0, background: 'var(--scrim)', zIndex: 9000,
         backdropFilter: 'blur(3px)', WebkitBackdropFilter: 'blur(3px)',
         display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
-        animation: 'fadeIn 160ms var(--ease)',
+        animation: 'fadeInFlat 160ms var(--ease)',
       }}
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
@@ -418,7 +475,8 @@ export function Modal({ open, onClose, title, subtitle, children, width = 600 }:
         </div>
         <div style={{ padding: 22, overflow: 'auto' }}>{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -507,7 +565,8 @@ export function Toast({ message, type = 'success', onClose }: ToastProps) {
     return () => clearTimeout(timer);
   }, [onClose]);
 
-  return (
+  // Portalled for the same reason as Modal — it must anchor to the viewport.
+  return createPortal(
     <div
       role="status"
       style={{
@@ -525,7 +584,8 @@ export function Toast({ message, type = 'success', onClose }: ToastProps) {
         style={{ border: 'none', background: 'transparent', padding: 4, flexShrink: 0 }}>
         <Icon name="close" size={14} />
       </button>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

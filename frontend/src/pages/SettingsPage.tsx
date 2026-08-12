@@ -66,7 +66,7 @@ export default function SettingsPage() {
   const card: React.CSSProperties = { padding: '22px 24px', marginBottom: 18 };
 
   return (
-    <div style={{ padding: isMobile ? 16 : 26, maxWidth: 980 }}>
+    <div style={{ padding: isMobile ? 16 : 26 }}>
       {toast && <Toast message={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
 
       <PageHeader icon="settings" title="Settings" subtitle="Your company details, as they appear to clients." />

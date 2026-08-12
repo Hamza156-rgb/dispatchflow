@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useTeam, useAddMember, useRemoveMember } from '../hooks/useApi';
 import { useAuthStore } from '../store/authStore';
 import { useMediaQuery } from '../hooks/useMediaQuery';
-import { Button, Input, FormField, Modal, Spinner, Toast, Avatar, Card, CardHeader, PageHeader, Icon } from '../components/ui';
+import { Button, Input, FormField, PasswordInput, Modal, Spinner, Toast, Avatar, Card, CardHeader, PageHeader, Icon } from '../components/ui';
 
 export default function TeamPage() {
   const { user } = useAuthStore();
@@ -156,7 +156,16 @@ export default function TeamPage() {
         </p>
         <FormField label="Full Name" required><Input value={form.fullName} onChange={(e) => setForm((f) => ({ ...f, fullName: e.target.value }))} placeholder="Jane Doe" /></FormField>
         <FormField label="Email" required><Input type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} placeholder="jane@company.com" /></FormField>
-        <FormField label="Temporary Password" required><Input type="text" value={form.password} onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))} placeholder="At least 8 characters" /></FormField>
+        <FormField label="Temporary Password" required hint="Shown so you can copy it and pass it on — they can change it after signing in.">
+          {/* Starts visible: the owner needs to read this back to the new member. */}
+          <PasswordInput
+            defaultVisible
+            autoComplete="new-password"
+            value={form.password}
+            onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
+            placeholder="At least 8 characters"
+          />
+        </FormField>
         <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 8 }}>
           <Button type="button" variant="secondary" onClick={() => setModal(false)}>Cancel</Button>
           <Button onClick={add} loading={addMember.isPending}>Add member</Button>

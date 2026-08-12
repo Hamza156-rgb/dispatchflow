@@ -4,7 +4,7 @@ import {
   useSearchLoadBoard, useImportLoadBoardResults,
 } from '../hooks/useApi';
 import { useMediaQuery } from '../hooks/useMediaQuery';
-import { Button, Input, Select, FormField, Modal, Spinner, EmptyState, Toast, PageHeader } from '../components/ui';
+import { Button, Input, Select, FormField, PasswordInput, Modal, Spinner, EmptyState, Toast, PageHeader } from '../components/ui';
 import type { LoadBoardResult, LoadBoardSearchParams } from '../types';
 
 const EQUIPMENT = ['', 'Dry Van', 'Reefer', 'Flatbed', 'Step Deck', 'Power Only', 'Box Truck', 'Hotshot'];
@@ -299,7 +299,7 @@ export default function LoadBoardPage() {
           <Input value={creds.username} onChange={(e) => setCreds({ ...creds, username: e.target.value })} placeholder="dispatch@yourcompany.com" autoComplete="off" />
         </FormField>
         <FormField label="Password">
-          <Input type="password" value={creds.password} onChange={(e) => setCreds({ ...creds, password: e.target.value })} placeholder="Leave blank if your plan doesn't need it" autoComplete="new-password" />
+          <PasswordInput value={creds.password} onChange={(e) => setCreds({ ...creds, password: e.target.value })} placeholder="Leave blank if your plan doesn't need it" autoComplete="new-password" />
         </FormField>
         <FormField label="Label (optional)">
           <Input value={creds.label} onChange={(e) => setCreds({ ...creds, label: e.target.value })} placeholder="e.g. Main dispatch seat" />

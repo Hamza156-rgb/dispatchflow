@@ -14,7 +14,7 @@ export type IconName =
   | 'check-circle' | 'clock' | 'plus' | 'upload' | 'download' | 'trash' | 'edit'
   | 'close' | 'menu' | 'sun' | 'moon' | 'logout' | 'chevron-left' | 'chevron-right'
   | 'chevron-down' | 'arrow-right' | 'clipboard' | 'refresh' | 'image' | 'crown'
-  | 'filter' | 'alert' | 'info' | 'check' | 'mail';
+  | 'filter' | 'alert' | 'info' | 'check' | 'mail' | 'eye' | 'eye-off' | 'lock';
 
 const PATHS: Record<IconName, React.ReactNode> = {
   dashboard: <><rect x="3" y="3" width="7" height="9" rx="1.5" /><rect x="14" y="3" width="7" height="5" rx="1.5" /><rect x="14" y="12" width="7" height="9" rx="1.5" /><rect x="3" y="16" width="7" height="5" rx="1.5" /></>,
@@ -56,6 +56,9 @@ const PATHS: Record<IconName, React.ReactNode> = {
   info: <><circle cx="12" cy="12" r="9" /><path d="M12 11v5M12 8v.5" /></>,
   check: <><path d="m4.5 12.5 5 5 10-11" /></>,
   mail: <><rect x="2" y="4" width="20" height="16" rx="2" /><path d="m3 6.5 8.2 6a1.4 1.4 0 0 0 1.6 0L21 6.5" /></>,
+  eye: <><path d="M2 12s3.8-7 10-7 10 7 10 7-3.8 7-10 7-10-7-10-7z" /><circle cx="12" cy="12" r="3" /></>,
+  'eye-off': <><path d="M17.9 17.9A10 10 0 0 1 12 19c-6.2 0-10-7-10-7a18.4 18.4 0 0 1 5.1-5.9" /><path d="M9.9 4.24A9.1 9.1 0 0 1 12 4c6.2 0 10 7 10 7a18.5 18.5 0 0 1-2.16 3.19" /><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24" /><path d="m2 2 20 20" /></>,
+  lock: <><rect x="4" y="10" width="16" height="11" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3" /></>,
 };
 
 interface IconProps extends React.SVGProps<SVGSVGElement> {
