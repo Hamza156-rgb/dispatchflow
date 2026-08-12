@@ -29,8 +29,8 @@ export default function AdminPage() {
   const [editing, setEditing] = useState<Partial<PricingPlan> | null>(null);
   const [featuresText, setFeaturesText] = useState('');
 
-  const { data: orgData, isLoading: orgLoading } = useOrganizations();
-  const { data: planData, isLoading: planLoading } = useAdminPlans();
+  const { data: orgData, isLoading: orgLoading, error: orgError } = useOrganizations();
+  const { data: planData, isLoading: planLoading, error: planError } = useAdminPlans();
   const updateOrg = useUpdateOrganization();
   const recordPay = useRecordOrgPayment();
   const createPlan = useCreatePlan();
@@ -83,6 +83,18 @@ export default function AdminPage() {
     setFeaturesText((p.features || []).join('\n'));
   };
 
+  // A failed load must say so — an empty table reads as "no data", which sent us
+  // hunting in the wrong place last time.
+  const ErrorNote = ({ error }: { error: unknown }) => {
+    const res = (error as any)?.response;
+    const detail = res?.data?.error ?? (res ? `HTTP ${res.status}` : 'Could not reach the server');
+    return (
+      <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', borderRadius: 12, padding: '14px 16px', fontSize: 13, fontWeight: 600 }}>
+        Couldn't load this data — {detail}.
+      </div>
+    );
+  };
+
   const th: React.CSSProperties = { padding: '12px 16px', fontSize: 11, fontWeight: 700, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'left', whiteSpace: 'nowrap' };
   const td: React.CSSProperties = { padding: '12px 16px', fontSize: 13, color: 'var(--color-text)', whiteSpace: 'nowrap' };
   const chipBtn: React.CSSProperties = {
@@ -133,6 +145,7 @@ export default function AdminPage() {
 
       {section === 'overview' && (
         <>
+          {orgError && <div style={{ marginBottom: 18 }}><ErrorNote error={orgError} /></div>}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px,1fr))', gap: 16, marginBottom: 22 }}>
             {[
               ['🏢', 'Organizations', summary.orgs, '#e0e7ff'],
@@ -163,7 +176,7 @@ export default function AdminPage() {
             <h3 style={{ margin: 0, fontSize: 15, fontWeight: 800 }}>All Organizations</h3>
             <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-muted)', background: 'var(--color-surface)', padding: '4px 10px', borderRadius: 20 }}>{orgs.length} total</span>
           </div>
-          {orgLoading ? <Spinner /> : <div style={{ overflowX: 'auto' }}>
+          {orgError ? <div style={{ padding: 18 }}><ErrorNote error={orgError} /></div> : orgLoading ? <Spinner /> : <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', minWidth: 1180, borderCollapse: 'collapse' }}>
               <thead><tr style={{ background: 'var(--color-surface)' }}>{['Organization', 'Users', 'Revenue', 'MRR', 'Plan', 'Status', 'Billing', 'Actions'].map((h) => <th key={h} style={th}>{h}</th>)}</tr></thead>
               <tbody>
@@ -238,7 +251,9 @@ export default function AdminPage() {
               <div style={{ fontWeight: 800 }}>Plan catalog</div>
               <div style={{ color: 'var(--color-muted)', fontSize: 12 }}>{plans.length} plans</div>
             </div>
-            {planLoading ? <Spinner /> : plans.map((p) => (
+            {planError ? <ErrorNote error={planError} /> : planLoading ? <Spinner /> : plans.length === 0 ? (
+              <div style={{ color: 'var(--color-muted)', fontSize: 13 }}>No plans yet — create one with the form.</div>
+            ) : plans.map((p) => (
               <div key={p.id} style={{ border: '1px solid var(--color-border)', borderRadius: 14, padding: 16, marginBottom: 12, display: 'grid', gap: 8 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
                   <div><strong>{p.name}</strong> <span style={{ color: 'var(--color-muted)' }}>({p.code})</span></div>
