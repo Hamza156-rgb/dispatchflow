@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useClients, useCreateClient, useBulkCreateClients } from '../hooks/useApi';
 import { useMediaQuery } from '../hooks/useMediaQuery';
-import { Button, Input, Modal, FormField, Spinner, EmptyState, Avatar, Pagination, Toast, Textarea } from '../components/ui';
+import { Button, Input, Modal, FormField, Spinner, EmptyState, Avatar, Pagination, Toast, Textarea, Card, PageHeader, Icon } from '../components/ui';
 import type { ClientPayload } from '../types';
 
 const CLIENT_CSV_COLUMNS = ['companyName', 'contactPerson', 'email', 'phone', 'address', 'city', 'state', 'zipCode', 'country', 'notes'];
@@ -98,63 +98,80 @@ export default function ClientsPage() {
   };
 
   return (
-    <div style={{ padding: isMobile ? 16 : 28 }}>
+    <div style={{ padding: isMobile ? 16 : 26 }}>
       {toast && <Toast message={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
 
-      {/* Toolbar */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, marginBottom: 20, flexWrap: 'wrap' }}>
-        <div style={{ maxWidth: 320, flex: 1, minWidth: 220 }}>
-          <Input placeholder="Search clients…" value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1); }} />
-        </div>
-        <div style={{ display: 'flex', gap: 10 }}>
-          <Button variant="secondary" onClick={() => { setImportRows([]); setImportErr(''); setImportModal(true); }}>⬆️ Import CSV</Button>
-          <Button onClick={() => setModal(true)}>+ Add Client</Button>
-        </div>
-      </div>
+      <PageHeader
+        icon="building"
+        title="Clients"
+        subtitle="Every company you haul for, in one place."
+        action={
+          <>
+            <Button variant="secondary" icon="upload"
+              onClick={() => { setImportRows([]); setImportErr(''); setImportModal(true); }}>Import CSV</Button>
+            <Button icon="plus" onClick={() => setModal(true)}>Add Client</Button>
+          </>
+        }
+      />
 
-      {isLoading ? <Spinner /> : !data?.clients.length ? (
-        <EmptyState icon="🏢" title="No clients found"
-          description={search ? 'Try a different search.' : 'Add your first client to get started.'}
-          action={<Button onClick={() => setModal(true)}>+ Add Client</Button>} />
-      ) : (
-        <>
-          <div style={{ background: 'var(--color-bg)', borderRadius: 14, border: '1.5px solid var(--color-border)', overflow: 'hidden' }}>
-            <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 560 }}>
-              <thead>
-                <tr style={{ background: 'var(--color-surface)' }}>
-                  {['Company', 'Contact', 'Email', 'Invoices', ''].map((h) => (
-                    <th key={h} style={{ padding: '12px 18px', textAlign: h === 'Invoices' ? 'center' : 'left',
-                      fontSize: 11, fontWeight: 700, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {data.clients.map((c: any) => (
-                  <tr key={c.id} onClick={() => navigate(`/clients/${c.id}`)}
-                    style={{ borderBottom: '1px solid var(--color-border)', cursor: 'pointer' }}>
-                    <td style={{ padding: '13px 18px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <Avatar name={c.companyName} size={34} />
-                        <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--color-text)' }}>{c.companyName}</span>
-                      </div>
-                    </td>
-                    <td style={{ padding: '13px 18px', fontSize: 13, color: 'var(--color-muted)' }}>{c.contactPerson}</td>
-                    <td style={{ padding: '13px 18px', fontSize: 13, color: 'var(--color-muted)' }}>{c.email}</td>
-                    <td style={{ padding: '13px 18px', textAlign: 'center', fontSize: 13, fontWeight: 700, color: 'var(--color-text)' }}>
-                      {c._count?.invoices ?? 0}
-                    </td>
-                    <td style={{ padding: '13px 18px', textAlign: 'right', color: 'var(--color-muted)' }}>→</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            </div>
+      <Card>
+        {/* Toolbar */}
+        <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--color-border)' }}>
+          <div style={{ maxWidth: 320 }}>
+            <Input icon="search" placeholder="Search clients…" value={search}
+              onChange={(e) => { setSearch(e.target.value); setPage(1); }} />
           </div>
-          <Pagination page={data.page} totalPages={data.totalPages} onChange={setPage} />
-        </>
-      )}
+        </div>
+
+        {isLoading ? <Spinner /> : !data?.clients.length ? (
+          <EmptyState icon="building" title="No clients found"
+            description={search ? 'Try a different search.' : 'Add your first client to get started.'}
+            action={<Button icon="plus" onClick={() => setModal(true)}>Add Client</Button>} />
+        ) : (
+          <>
+            <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+              <table className="df-table" style={{ minWidth: 620 }}>
+                <thead>
+                  <tr>
+                    {['Company', 'Contact', 'Email', 'Invoices', ''].map((h) => (
+                      <th key={h} style={{ padding: '11px 18px', textAlign: h === 'Invoices' ? 'center' : 'left',
+                        fontSize: 11, fontWeight: 700, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.clients.map((c: any) => (
+                    <tr key={c.id} onClick={() => navigate(`/clients/${c.id}`)} className="df-clickable"
+                      style={{ borderBottom: '1px solid var(--color-border)' }}>
+                      <td style={{ padding: '12px 18px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                          <Avatar name={c.companyName} size={34} />
+                          <span style={{ fontWeight: 650, fontSize: 13.5, color: 'var(--color-text)' }}>{c.companyName}</span>
+                        </div>
+                      </td>
+                      <td style={{ padding: '12px 18px', fontSize: 13, color: 'var(--color-muted)' }}>{c.contactPerson}</td>
+                      <td style={{ padding: '12px 18px', fontSize: 13, color: 'var(--color-muted)' }}>{c.email}</td>
+                      <td style={{ padding: '12px 18px', textAlign: 'center' }}>
+                        <span style={{ display: 'inline-block', minWidth: 26, padding: '2px 8px', borderRadius: 999,
+                          background: 'var(--color-surface)', border: '1px solid var(--color-border)',
+                          fontSize: 12, fontWeight: 650, color: 'var(--color-text)' }}>
+                          {c._count?.invoices ?? 0}
+                        </span>
+                      </td>
+                      <td style={{ padding: '12px 18px', textAlign: 'right', color: 'var(--color-faint)' }}>
+                        <Icon name="chevron-right" size={16} style={{ display: 'inline-block' }} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div style={{ borderTop: '1px solid var(--color-border)' }}>
+              <Pagination page={data.page} totalPages={data.totalPages} onChange={setPage} />
+            </div>
+          </>
+        )}
+      </Card>
 
       {/* Add Client modal */}
       <Modal open={modal} onClose={() => setModal(false)} title="Add Client" width={560}>
@@ -197,19 +214,23 @@ export default function ClientsPage() {
           Upload a CSV to add many clients at once. Only <strong>companyName</strong> is required.
           Clients that already exist (same name) are skipped.
         </p>
-        <button onClick={downloadTemplate} style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', borderRadius: 8, padding: '8px 14px', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--color-text)', fontFamily: 'inherit', marginBottom: 16 }}>
-          ⬇️ Download CSV template
-        </button>
+        <Button variant="secondary" size="sm" icon="download" onClick={downloadTemplate} style={{ marginBottom: 16 }}>
+          Download CSV template
+        </Button>
 
         <input type="file" accept=".csv,text/csv" onChange={(e) => onCsvFile(e.target.files?.[0])}
-          style={{ display: 'block', width: '100%', padding: '10px', border: '1.5px dashed var(--color-border)', borderRadius: 10, background: 'var(--color-surface)', color: 'var(--color-text)', fontSize: 13, marginBottom: 14, boxSizing: 'border-box' }} />
+          style={{ display: 'block', width: '100%', padding: '12px', border: '1.5px dashed var(--color-border-strong)', borderRadius: 12, background: 'var(--color-surface)', color: 'var(--color-muted)', fontSize: 13, marginBottom: 14, boxSizing: 'border-box', cursor: 'pointer' }} />
 
-        {importErr && <div style={{ background: '#fee2e2', color: '#b91c1c', padding: '10px 14px', borderRadius: 8, fontSize: 13, marginBottom: 14 }}>⚠️ {importErr}</div>}
+        {importErr && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--color-danger-soft)', border: '1px solid var(--color-danger-line)', color: 'var(--color-danger)', padding: '10px 14px', borderRadius: 10, fontSize: 13, marginBottom: 14 }}>
+            <Icon name="alert" size={16} /> {importErr}
+          </div>
+        )}
 
         {importRows.length > 0 && (
           <div style={{ marginBottom: 14 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-text)', marginBottom: 8 }}>{importRows.length} rows found — preview:</div>
-            <div style={{ overflowX: 'auto', border: '1.5px solid var(--color-border)', borderRadius: 10 }}>
+            <div style={{ overflowX: 'auto', border: '1px solid var(--color-border)', borderRadius: 12 }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                 <thead>
                   <tr style={{ background: 'var(--color-surface)' }}>

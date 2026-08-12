@@ -1,4 +1,8 @@
 import React from 'react';
+import { Icon, type IconName } from './icons';
+
+export { Icon };
+export type { IconName };
 
 // ─── Button ───────────────────────────────────────────────────────────────────
 type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'success' | 'ghost';
@@ -8,36 +12,94 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
   size?: ButtonSize;
   loading?: boolean;
+  /** Optional leading icon, rendered before the label. */
+  icon?: IconName;
 }
 
 const btnStyles: Record<ButtonVariant, React.CSSProperties> = {
-  primary:   { background: '#2563eb', color: '#fff', border: 'none' },
-  secondary: { background: 'transparent', color: 'var(--color-text)', border: '1.5px solid var(--color-border)' },
-  danger:    { background: '#ef4444', color: '#fff', border: 'none' },
-  success:   { background: '#16a34a', color: '#fff', border: 'none' },
-  ghost:     { background: 'transparent', color: 'var(--color-muted)', border: 'none' },
+  primary: {
+    background: 'var(--color-primary)', color: 'var(--color-on-primary)',
+    border: '1px solid transparent', boxShadow: '0 1px 2px rgba(13,21,38,0.14)',
+  },
+  secondary: {
+    background: 'var(--color-bg)', color: 'var(--color-text)',
+    border: '1px solid var(--color-border-strong)', boxShadow: 'var(--shadow-xs)',
+  },
+  danger: {
+    background: '#e11d48', color: '#fff',
+    border: '1px solid transparent', boxShadow: '0 1px 2px rgba(13,21,38,0.14)',
+  },
+  success: {
+    background: '#16a34a', color: '#fff',
+    border: '1px solid transparent', boxShadow: '0 1px 2px rgba(13,21,38,0.14)',
+  },
+  ghost: {
+    background: 'transparent', color: 'var(--color-muted)',
+    border: '1px solid transparent', boxShadow: 'none',
+  },
 };
 
 const btnSizes: Record<ButtonSize, React.CSSProperties> = {
-  sm: { padding: '6px 14px', fontSize: 12 },
-  md: { padding: '9px 20px', fontSize: 14 },
-  lg: { padding: '12px 28px', fontSize: 15 },
+  sm: { padding: '6px 12px', fontSize: 12.5, borderRadius: 8, gap: 6 },
+  md: { padding: '9px 16px', fontSize: 13.5, borderRadius: 10, gap: 7 },
+  lg: { padding: '12px 22px', fontSize: 15, borderRadius: 12, gap: 8 },
 };
 
-export function Button({ variant = 'primary', size = 'md', loading, children, disabled, style, ...props }: ButtonProps) {
+const ICON_SIZE: Record<ButtonSize, number> = { sm: 14, md: 16, lg: 18 };
+
+export function Button({
+  variant = 'primary', size = 'md', loading, icon, children, disabled, style, className = '', ...props
+}: ButtonProps) {
+  const off = disabled || loading;
   return (
     <button
-      disabled={disabled || loading}
+      disabled={off}
+      className={`df-btn df-btn--${variant} ${className}`.trim()}
       style={{
-        borderRadius: 8, fontWeight: 600, cursor: (disabled || loading) ? 'not-allowed' : 'pointer',
-        opacity: (disabled || loading) ? 0.6 : 1, transition: 'all 0.15s', fontFamily: 'inherit',
-        display: 'inline-flex', alignItems: 'center', gap: 8,
+        fontWeight: 600, letterSpacing: '-0.005em', lineHeight: 1.35,
+        cursor: off ? 'not-allowed' : 'pointer',
+        opacity: off ? 0.55 : 1,
+        transition: 'background 160ms, border-color 160ms, box-shadow 160ms, transform 120ms, filter 160ms',
+        fontFamily: 'inherit', whiteSpace: 'nowrap',
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
         ...btnStyles[variant], ...btnSizes[size], ...style,
       }}
       {...props}
     >
-      {loading && <span style={{ animation: 'spin 0.8s linear infinite', display: 'inline-block' }}>⟳</span>}
+      {loading
+        ? <Spin size={ICON_SIZE[size]} />
+        : icon && <Icon name={icon} size={ICON_SIZE[size]} />}
       {children}
+    </button>
+  );
+}
+
+/** Inline spinner used inside buttons. */
+function Spin({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+      style={{ animation: 'spin 0.7s linear infinite', flexShrink: 0 }} aria-hidden="true">
+      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2.4" opacity="0.25" />
+      <path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+// ─── IconButton ───────────────────────────────────────────────────────────────
+interface IconButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  icon: IconName;
+  size?: number;
+  tone?: 'default' | 'danger';
+}
+
+export function IconButton({ icon, size = 16, tone = 'default', style, className = '', ...props }: IconButtonProps) {
+  return (
+    <button
+      className={`df-icon-btn ${tone === 'danger' ? 'is-danger' : ''} ${className}`.trim()}
+      style={{ padding: 7, lineHeight: 0, ...style }}
+      {...props}
+    >
+      <Icon name={icon} size={size} />
     </button>
   );
 }
@@ -45,79 +107,251 @@ export function Button({ variant = 'primary', size = 'md', loading, children, di
 // ─── Input ────────────────────────────────────────────────────────────────────
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   error?: string;
+  /** Renders a leading icon inside the field. */
+  icon?: IconName;
 }
 
-export const Input = React.forwardRef<HTMLInputElement, InputProps>(function Input({ error, style, ...props }, ref) {
+const fieldBase: React.CSSProperties = {
+  width: '100%', padding: '9px 13px', borderRadius: 10, fontSize: 13.5,
+  background: 'var(--color-bg)', color: 'var(--color-text)',
+  outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit',
+  boxShadow: 'var(--shadow-xs)',
+};
+
+export const Input = React.forwardRef<HTMLInputElement, InputProps>(function Input(
+  { error, icon, style, ...props }, ref,
+) {
+  const field = (
+    <input
+      ref={ref}
+      style={{
+        ...fieldBase,
+        border: `1px solid ${error ? 'var(--color-danger)' : 'var(--color-border-strong)'}`,
+        paddingLeft: icon ? 36 : 13,
+        ...style,
+      }}
+      {...props}
+    />
+  );
+
   return (
     <div>
-      <input
-        ref={ref}
-        style={{
-          width: '100%', padding: '10px 14px', borderRadius: 8, fontSize: 14,
-          border: `1.5px solid ${error ? '#ef4444' : 'var(--color-border)'}`,
-          background: 'var(--color-bg)', color: 'var(--color-text)',
-          outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit',
-          transition: 'border-color 0.15s', ...style,
-        }}
-        {...props}
-      />
-      {error && <p style={{ margin: '4px 0 0', fontSize: 12, color: '#ef4444' }}>{error}</p>}
+      {icon ? (
+        <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+          <span style={{ position: 'absolute', left: 12, color: 'var(--color-faint)', pointerEvents: 'none', lineHeight: 0 }}>
+            <Icon name={icon} size={15} />
+          </span>
+          {field}
+        </div>
+      ) : field}
+      {error && <FieldError message={error} />}
     </div>
   );
 });
 
 // ─── Textarea ─────────────────────────────────────────────────────────────────
-export const Textarea = React.forwardRef<HTMLTextAreaElement, React.TextareaHTMLAttributes<HTMLTextAreaElement>>(function Textarea({ style, ...props }, ref) {
-  return (
-    <textarea
-      ref={ref}
-      style={{
-        width: '100%', padding: '10px 14px', borderRadius: 8, fontSize: 14,
-        border: '1.5px solid var(--color-border)', background: 'var(--color-bg)',
-        color: 'var(--color-text)', outline: 'none', boxSizing: 'border-box',
-        resize: 'vertical', fontFamily: 'inherit', ...style,
-      }}
-      {...props}
-    />
-  );
-});
+export const Textarea = React.forwardRef<HTMLTextAreaElement, React.TextareaHTMLAttributes<HTMLTextAreaElement>>(
+  function Textarea({ style, ...props }, ref) {
+    return (
+      <textarea
+        ref={ref}
+        style={{
+          ...fieldBase,
+          border: '1px solid var(--color-border-strong)',
+          padding: '10px 13px', lineHeight: 1.55, resize: 'vertical', minHeight: 76,
+          ...style,
+        }}
+        {...props}
+      />
+    );
+  },
+);
 
 // ─── Select ───────────────────────────────────────────────────────────────────
-export const Select = React.forwardRef<HTMLSelectElement, React.SelectHTMLAttributes<HTMLSelectElement>>(function Select({ style, children, ...props }, ref) {
-  return (
-    <select
-      ref={ref}
-      style={{
-        width: '100%', padding: '10px 14px', borderRadius: 8, fontSize: 14,
-        border: '1.5px solid var(--color-border)', background: 'var(--color-bg)',
-        color: 'var(--color-text)', outline: 'none', boxSizing: 'border-box',
-        cursor: 'pointer', fontFamily: 'inherit', ...style,
-      }}
-      {...props}
-    >
-      {children}
-    </select>
-  );
-});
+export const Select = React.forwardRef<HTMLSelectElement, React.SelectHTMLAttributes<HTMLSelectElement>>(
+  function Select({ style, children, ...props }, ref) {
+    return (
+      <div style={{ position: 'relative', width: '100%' }}>
+        <select
+          ref={ref}
+          style={{
+            ...fieldBase,
+            border: '1px solid var(--color-border-strong)',
+            appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none',
+            paddingRight: 34, cursor: 'pointer', fontWeight: 500,
+            ...style,
+          }}
+          {...props}
+        >
+          {children}
+        </select>
+        <span style={{
+          position: 'absolute', right: 11, top: '50%', transform: 'translateY(-50%)',
+          color: 'var(--color-faint)', pointerEvents: 'none', lineHeight: 0,
+        }}>
+          <Icon name="chevron-down" size={15} />
+        </span>
+      </div>
+    );
+  },
+);
 
 // ─── FormField ────────────────────────────────────────────────────────────────
 interface FormFieldProps {
   label: string;
   required?: boolean;
   error?: string;
+  /** Optional helper copy shown under the label. */
+  hint?: string;
   children: React.ReactNode;
 }
 
-export function FormField({ label, required, error, children }: FormFieldProps) {
+export function FormField({ label, required, error, hint, children }: FormFieldProps) {
   return (
-    <div style={{ marginBottom: 16 }}>
-      <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 700,
-        color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+    <div style={{ marginBottom: 16, minWidth: 0 }}>
+      <label style={{
+        display: 'flex', alignItems: 'center', gap: 4, marginBottom: 7,
+        fontSize: 11.5, fontWeight: 700, color: 'var(--color-muted)',
+        textTransform: 'uppercase', letterSpacing: '0.06em',
+      }}>
         {label}
-        {required && <span style={{ color: '#ef4444', marginLeft: 3 }}>*</span>}
+        {required && <span style={{ color: 'var(--color-danger)' }}>*</span>}
       </label>
+      {hint && <p style={{ margin: '-3px 0 7px', fontSize: 12, color: 'var(--color-faint)' }}>{hint}</p>}
       {children}
-      {error && <p style={{ margin: '4px 0 0', fontSize: 12, color: '#ef4444' }}>{error}</p>}
+      {error && <FieldError message={error} />}
+    </div>
+  );
+}
+
+function FieldError({ message }: { message: string }) {
+  return (
+    <p style={{
+      margin: '6px 0 0', fontSize: 12, color: 'var(--color-danger)',
+      display: 'flex', alignItems: 'center', gap: 5, fontWeight: 500,
+    }}>
+      <Icon name="alert" size={13} />
+      {message}
+    </p>
+  );
+}
+
+// ─── Card ─────────────────────────────────────────────────────────────────────
+interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
+  /** Adds interior padding. Pass a number for a custom amount. */
+  padded?: boolean | number;
+  /** Subtle hover lift — use for clickable cards. */
+  hoverable?: boolean;
+}
+
+export function Card({ padded, hoverable, style, className = '', children, ...rest }: CardProps) {
+  const pad = padded === true ? 22 : typeof padded === 'number' ? padded : 0;
+  return (
+    <div
+      className={`df-card ${hoverable ? 'df-lift' : ''} ${className}`.trim()}
+      style={{ padding: pad, overflow: 'hidden', ...style }}
+      {...rest}
+    >
+      {children}
+    </div>
+  );
+}
+
+/** Header strip for a Card — title on the left, actions on the right. */
+export function CardHeader({ title, subtitle, action }: { title: string; subtitle?: string; action?: React.ReactNode }) {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+      padding: '15px 20px', borderBottom: '1px solid var(--color-border)', flexWrap: 'wrap',
+    }}>
+      <div style={{ minWidth: 0 }}>
+        <h3 style={{ margin: 0, fontSize: 14.5, fontWeight: 700, color: 'var(--color-text)' }}>{title}</h3>
+        {subtitle && <p style={{ margin: '2px 0 0', fontSize: 12.5, color: 'var(--color-muted)' }}>{subtitle}</p>}
+      </div>
+      {action}
+    </div>
+  );
+}
+
+// ─── PageHeader ───────────────────────────────────────────────────────────────
+export function PageHeader({ title, subtitle, action, icon }: {
+  title: string; subtitle?: string; action?: React.ReactNode; icon?: IconName;
+}) {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
+      gap: 16, marginBottom: 22, flexWrap: 'wrap',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 13, minWidth: 0 }}>
+        {icon && (
+          <div style={{
+            width: 40, height: 40, borderRadius: 12, flexShrink: 0,
+            background: 'var(--color-primary-soft)', color: 'var(--color-primary)',
+            border: '1px solid var(--color-primary-line)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Icon name={icon} size={20} />
+          </div>
+        )}
+        <div style={{ minWidth: 0 }}>
+          <h2 style={{ margin: 0, fontSize: 21, fontWeight: 750, color: 'var(--color-text)', letterSpacing: '-0.02em' }}>
+            {title}
+          </h2>
+          {subtitle && <p style={{ margin: '3px 0 0', color: 'var(--color-muted)', fontSize: 13.5 }}>{subtitle}</p>}
+        </div>
+      </div>
+      {action && <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>{action}</div>}
+    </div>
+  );
+}
+
+// ─── StatCard ─────────────────────────────────────────────────────────────────
+export type StatTone = 'primary' | 'success' | 'warning' | 'danger' | 'violet' | 'neutral';
+
+const TONES: Record<StatTone, { fg: string; soft: string; line: string }> = {
+  primary: { fg: 'var(--color-primary)', soft: 'var(--color-primary-soft)', line: 'var(--color-primary-line)' },
+  success: { fg: 'var(--color-success)', soft: 'var(--color-success-soft)', line: 'var(--color-success-line)' },
+  warning: { fg: 'var(--color-warning)', soft: 'var(--color-warning-soft)', line: 'var(--color-warning-line)' },
+  danger:  { fg: 'var(--color-danger)',  soft: 'var(--color-danger-soft)',  line: 'var(--color-danger-line)'  },
+  violet:  { fg: 'var(--color-violet)',  soft: 'var(--color-violet-soft)',  line: 'var(--color-violet-line)'  },
+  neutral: { fg: 'var(--color-muted)',   soft: 'var(--color-neutral-soft)', line: 'var(--color-neutral-line)' },
+};
+
+export function StatCard({ icon, label, value, tone = 'neutral', hint, valueColor }: {
+  icon: IconName;
+  label: string;
+  value: string;
+  tone?: StatTone;
+  hint?: string;
+  /** Override the value colour (defaults to primary text). */
+  valueColor?: string;
+}) {
+  const t = TONES[tone];
+  return (
+    <div className="df-card df-lift" style={{ padding: '17px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
+      <div style={{
+        width: 44, height: 44, borderRadius: 13, flexShrink: 0,
+        background: t.soft, color: t.fg, border: `1px solid ${t.line}`,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <Icon name={icon} size={21} />
+      </div>
+      <div style={{ minWidth: 0 }}>
+        <div style={{
+          fontSize: 11, fontWeight: 700, color: 'var(--color-muted)',
+          textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap',
+          overflow: 'hidden', textOverflow: 'ellipsis',
+        }}>
+          {label}
+        </div>
+        <div className="df-num" style={{
+          fontSize: 23, fontWeight: 800, letterSpacing: '-0.03em', marginTop: 2,
+          color: valueColor ?? 'var(--color-text)', whiteSpace: 'nowrap',
+        }}>
+          {value}
+        </div>
+        {hint && <div style={{ fontSize: 11.5, color: 'var(--color-faint)', marginTop: 1 }}>{hint}</div>}
+      </div>
     </div>
   );
 }
@@ -129,61 +363,124 @@ interface ModalProps {
   title: string;
   children: React.ReactNode;
   width?: number;
+  /** Optional line under the title. */
+  subtitle?: string;
 }
 
-export function Modal({ open, onClose, title, children, width = 600 }: ModalProps) {
+export function Modal({ open, onClose, title, subtitle, children, width = 600 }: ModalProps) {
+  // Escape to dismiss + lock the page behind the dialog while it is open.
+  React.useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [open, onClose]);
+
   if (!open) return null;
+
   return (
     <div
-      style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 9000,
-        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
-      onClick={e => e.target === e.currentTarget && onClose()}
+      role="dialog"
+      aria-modal="true"
+      style={{
+        position: 'fixed', inset: 0, background: 'var(--scrim)', zIndex: 9000,
+        backdropFilter: 'blur(3px)', WebkitBackdropFilter: 'blur(3px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
+        animation: 'fadeIn 160ms var(--ease)',
+      }}
+      onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div style={{ background: 'var(--color-bg)', borderRadius: 16, width: '100%', maxWidth: width,
-        maxHeight: '90vh', overflow: 'auto', boxShadow: '0 25px 60px rgba(0,0,0,0.3)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '20px 24px', borderBottom: '1px solid var(--color-border)' }}>
-          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: 'var(--color-text)' }}>{title}</h2>
-          <button onClick={onClose}
-            style={{ background: 'none', border: 'none', cursor: 'pointer',
-              color: 'var(--color-muted)', fontSize: 20, padding: '2px 8px', borderRadius: 6 }}>
-            ✕
+      <div style={{
+        background: 'var(--color-bg)', borderRadius: 18, width: '100%', maxWidth: width,
+        maxHeight: '90vh', display: 'flex', flexDirection: 'column',
+        border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-xl)',
+        animation: 'scaleIn 180ms var(--ease)',
+      }}>
+        <div style={{
+          display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16,
+          padding: '18px 22px', borderBottom: '1px solid var(--color-border)', flexShrink: 0,
+        }}>
+          <div style={{ minWidth: 0 }}>
+            <h2 style={{ margin: 0, fontSize: 17, fontWeight: 750, color: 'var(--color-text)', letterSpacing: '-0.02em' }}>
+              {title}
+            </h2>
+            {subtitle && <p style={{ margin: '3px 0 0', fontSize: 13, color: 'var(--color-muted)' }}>{subtitle}</p>}
+          </div>
+          <button onClick={onClose} aria-label="Close" className="df-icon-btn"
+            style={{ padding: 6, border: 'none', background: 'transparent', flexShrink: 0 }}>
+            <Icon name="close" size={17} />
           </button>
         </div>
-        <div style={{ padding: 24 }}>{children}</div>
+        <div style={{ padding: 22, overflow: 'auto' }}>{children}</div>
       </div>
     </div>
   );
 }
 
 // ─── StatusBadge ──────────────────────────────────────────────────────────────
-const STATUS_STYLES: Record<string, { color: string; bg: string }> = {
-  DRAFT:     { color: '#374151', bg: '#f3f4f6' },
-  SENT:      { color: '#1d4ed8', bg: '#dbeafe' },
-  PAID:      { color: '#15803d', bg: '#dcfce7' },
-  OVERDUE:   { color: '#b91c1c', bg: '#fee2e2' },
-  CANCELLED: { color: '#6b7280', bg: '#f9fafb' },
+type BadgeTone = { fg: string; bg: string; line: string };
+
+const STATUS_TONES: Record<string, BadgeTone> = {
+  DRAFT:     { fg: 'var(--color-muted)',   bg: 'var(--color-neutral-soft)', line: 'var(--color-neutral-line)' },
+  SENT:      { fg: 'var(--color-info)',    bg: 'var(--color-info-soft)',    line: 'var(--color-info-line)' },
+  PAID:      { fg: 'var(--color-success)', bg: 'var(--color-success-soft)', line: 'var(--color-success-line)' },
+  OVERDUE:   { fg: 'var(--color-danger)',  bg: 'var(--color-danger-soft)',  line: 'var(--color-danger-line)' },
+  CANCELLED: { fg: 'var(--color-faint)',   bg: 'var(--color-neutral-soft)', line: 'var(--color-neutral-line)' },
 };
 
-export function StatusBadge({ status }: { status: string }) {
-  const s = STATUS_STYLES[status] ?? STATUS_STYLES.DRAFT;
+/** Soft pill with a status dot — reads clearly in both themes. */
+export function Badge({ label, tone, dot = true }: { label: string; tone: BadgeTone; dot?: boolean }) {
   return (
-    <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 700,
-      color: s.color, background: s.bg, letterSpacing: '0.02em', whiteSpace: 'nowrap' }}>
-      {status.charAt(0) + status.slice(1).toLowerCase()}
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: 6,
+      padding: dot ? '3px 10px 3px 8px' : '3px 10px',
+      borderRadius: 999, fontSize: 11.5, fontWeight: 650, lineHeight: 1.6,
+      color: tone.fg, background: tone.bg, border: `1px solid ${tone.line}`,
+      letterSpacing: '0.01em', whiteSpace: 'nowrap',
+    }}>
+      {dot && <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor', flexShrink: 0 }} />}
+      {label}
     </span>
   );
 }
 
+export function StatusBadge({ status }: { status: string }) {
+  const tone = STATUS_TONES[status] ?? STATUS_TONES.DRAFT;
+  return <Badge label={status.charAt(0) + status.slice(1).toLowerCase()} tone={tone} />;
+}
+
 // ─── Avatar ───────────────────────────────────────────────────────────────────
+const AVATAR_GRADIENTS = [
+  ['#3b82f6', '#1d4ed8'],
+  ['#8b5cf6', '#6d28d9'],
+  ['#14b8a6', '#0f766e'],
+  ['#f59e0b', '#b45309'],
+  ['#f43f5e', '#be123c'],
+  ['#06b6d4', '#0e7490'],
+  ['#10b981', '#047857'],
+];
+
 export function Avatar({ name, size = 36 }: { name: string; size?: number }) {
-  const initials = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
-  const colors = ['#0369a1', '#7c3aed', '#0f766e', '#b45309', '#be123c', '#1d4ed8', '#065f46'];
-  const bg = colors[name.charCodeAt(0) % colors.length];
+  const clean = (name || '?').trim();
+  const initials = clean.split(/\s+/).map((w) => w[0]).join('').slice(0, 2).toUpperCase() || '?';
+  const [from, to] = AVATAR_GRADIENTS[clean.charCodeAt(0) % AVATAR_GRADIENTS.length];
   return (
-    <div style={{ width: size, height: size, borderRadius: '50%', background: bg, flexShrink: 0,
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      color: '#fff', fontWeight: 700, fontSize: size * 0.35, userSelect: 'none' }}>
+    <div
+      title={clean}
+      style={{
+        width: size, height: size, borderRadius: size <= 34 ? 9 : 12, flexShrink: 0,
+        background: `linear-gradient(135deg, ${from} 0%, ${to} 100%)`,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        color: '#fff', fontWeight: 700, fontSize: Math.max(10, size * 0.36),
+        letterSpacing: '0.01em', userSelect: 'none',
+        boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.16), 0 1px 2px rgba(13,21,38,0.18)',
+      }}
+    >
       {initials}
     </div>
   );
@@ -196,13 +493,14 @@ interface ToastProps {
   onClose: () => void;
 }
 
+const TOAST_TONES: Record<NonNullable<ToastProps['type']>, { fg: string; icon: IconName }> = {
+  success: { fg: 'var(--color-success)', icon: 'check-circle' },
+  error:   { fg: 'var(--color-danger)',  icon: 'alert' },
+  info:    { fg: 'var(--color-info)',    icon: 'info' },
+};
+
 export function Toast({ message, type = 'success', onClose }: ToastProps) {
-  const styles = {
-    success: { bg: '#dcfce7', color: '#15803d', icon: '✅' },
-    error:   { bg: '#fee2e2', color: '#b91c1c', icon: '❌' },
-    info:    { bg: '#dbeafe', color: '#1d4ed8', icon: 'ℹ️' },
-  };
-  const s = styles[type];
+  const t = TOAST_TONES[type];
 
   React.useEffect(() => {
     const timer = setTimeout(onClose, 3500);
@@ -210,45 +508,73 @@ export function Toast({ message, type = 'success', onClose }: ToastProps) {
   }, [onClose]);
 
   return (
-    <div style={{
-      position: 'fixed', top: 76, right: 20, background: s.bg, color: s.color,
-      padding: '12px 20px', borderRadius: 10, fontWeight: 600, fontSize: 14,
-      zIndex: 9999, boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
-      display: 'flex', alignItems: 'center', gap: 10, maxWidth: 380,
-      animation: 'slideIn 0.2s ease',
-    }}>
-      <span>{s.icon}</span>
-      <span>{message}</span>
-      <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer',
-        color: s.color, fontSize: 16, marginLeft: 8, padding: 0, lineHeight: 1 }}>✕</button>
+    <div
+      role="status"
+      style={{
+        position: 'fixed', top: 78, right: 20, zIndex: 9999,
+        display: 'flex', alignItems: 'center', gap: 11, maxWidth: 400,
+        background: 'var(--color-bg)', color: 'var(--color-text)',
+        padding: '12px 14px', borderRadius: 12, fontWeight: 500, fontSize: 13.5,
+        border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-lg)',
+        animation: 'slideIn 200ms var(--ease)',
+      }}
+    >
+      <span style={{ color: t.fg, lineHeight: 0, flexShrink: 0 }}><Icon name={t.icon} size={19} /></span>
+      <span style={{ flex: 1, minWidth: 0 }}>{message}</span>
+      <button onClick={onClose} aria-label="Dismiss" className="df-icon-btn"
+        style={{ border: 'none', background: 'transparent', padding: 4, flexShrink: 0 }}>
+        <Icon name="close" size={14} />
+      </button>
     </div>
   );
 }
 
 // ─── EmptyState ───────────────────────────────────────────────────────────────
 export function EmptyState({ icon, title, description, action }: {
-  icon: string; title: string; description?: string; action?: React.ReactNode;
+  icon: React.ReactNode; title: string; description?: string; action?: React.ReactNode;
 }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center',
-      justifyContent: 'center', padding: '80px 24px', textAlign: 'center' }}>
-      <div style={{ fontSize: 48, marginBottom: 16 }}>{icon}</div>
-      <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--color-text)', marginBottom: 8 }}>{title}</div>
-      {description && <div style={{ fontSize: 14, color: 'var(--color-muted)', maxWidth: 320, marginBottom: 24 }}>{description}</div>}
+    <div style={{
+      display: 'flex', flexDirection: 'column', alignItems: 'center',
+      justifyContent: 'center', padding: '64px 24px', textAlign: 'center',
+    }}>
+      <div style={{
+        width: 62, height: 62, borderRadius: 18, marginBottom: 18,
+        background: 'var(--color-surface)', border: '1px solid var(--color-border)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: 27, color: 'var(--color-faint)',
+      }}>
+        {typeof icon === 'string' && /^[a-z-]+$/.test(icon)
+          ? <Icon name={icon as IconName} size={26} />
+          : icon}
+      </div>
+      <div style={{ fontSize: 16.5, fontWeight: 700, color: 'var(--color-text)', marginBottom: 6, letterSpacing: '-0.015em' }}>
+        {title}
+      </div>
+      {description && (
+        <div style={{ fontSize: 13.5, color: 'var(--color-muted)', maxWidth: 340, marginBottom: 22, lineHeight: 1.6 }}>
+          {description}
+        </div>
+      )}
       {action}
     </div>
   );
 }
 
 // ─── Spinner ──────────────────────────────────────────────────────────────────
-export function Spinner({ size = 24 }: { size?: number }) {
+export function Spinner({ size = 26 }: { size?: number }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40 }}>
-      <div style={{ width: size, height: size, borderRadius: '50%',
-        border: `3px solid var(--color-border)`, borderTopColor: '#2563eb',
-        animation: 'spin 0.7s linear infinite' }} />
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 48, color: 'var(--color-primary)' }}>
+      <Spin size={size} />
     </div>
   );
+}
+
+// ─── Skeleton ─────────────────────────────────────────────────────────────────
+export function Skeleton({ width = '100%', height = 14, radius = 8, style }: {
+  width?: number | string; height?: number | string; radius?: number; style?: React.CSSProperties;
+}) {
+  return <div className="df-skeleton" style={{ width, height, borderRadius: radius, ...style }} />;
 }
 
 // ─── Pagination ───────────────────────────────────────────────────────────────
@@ -256,19 +582,57 @@ export function Pagination({ page, totalPages, onChange }: {
   page: number; totalPages: number; onChange: (p: number) => void;
 }) {
   if (totalPages <= 1) return null;
+
+  // Windowed page numbers around the current page, with ellipses at the edges.
+  const pages: (number | '…')[] = [];
+  const push = (n: number | '…') => pages.push(n);
+  const span = 1;
+  for (let i = 1; i <= totalPages; i++) {
+    if (i === 1 || i === totalPages || (i >= page - span && i <= page + span)) push(i);
+    else if (pages[pages.length - 1] !== '…') push('…');
+  }
+
+  const navBtn = (disabled: boolean): React.CSSProperties => ({
+    padding: '6px 10px', opacity: disabled ? 0.4 : 1,
+    cursor: disabled ? 'not-allowed' : 'pointer',
+  });
+
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '16px 0' }}>
-      <button onClick={() => onChange(page - 1)} disabled={page === 1}
-        style={{ padding: '6px 14px', borderRadius: 7, border: '1.5px solid var(--color-border)',
-          background: 'transparent', color: 'var(--color-muted)', cursor: page === 1 ? 'not-allowed' : 'pointer',
-          opacity: page === 1 ? 0.4 : 1, fontFamily: 'inherit' }}>← Prev</button>
-      <span style={{ fontSize: 13, color: 'var(--color-muted)', padding: '0 8px' }}>
-        Page {page} of {totalPages}
-      </span>
-      <button onClick={() => onChange(page + 1)} disabled={page === totalPages}
-        style={{ padding: '6px 14px', borderRadius: 7, border: '1.5px solid var(--color-border)',
-          background: 'transparent', color: 'var(--color-muted)', cursor: page === totalPages ? 'not-allowed' : 'pointer',
-          opacity: page === totalPages ? 0.4 : 1, fontFamily: 'inherit' }}>Next →</button>
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+      padding: '14px 16px', flexWrap: 'wrap',
+    }}>
+      <button className="df-icon-btn" onClick={() => onChange(page - 1)} disabled={page === 1}
+        aria-label="Previous page" style={navBtn(page === 1)}>
+        <Icon name="chevron-left" size={15} />
+      </button>
+
+      {pages.map((p, i) =>
+        p === '…' ? (
+          <span key={`gap-${i}`} style={{ padding: '0 4px', color: 'var(--color-faint)', fontSize: 13 }}>…</span>
+        ) : (
+          <button
+            key={p}
+            onClick={() => onChange(p)}
+            aria-current={p === page ? 'page' : undefined}
+            className={p === page ? '' : 'df-icon-btn'}
+            style={{
+              minWidth: 32, padding: '6px 9px', fontSize: 13, fontWeight: 650, borderRadius: 8,
+              cursor: 'pointer', fontFamily: 'inherit',
+              ...(p === page
+                ? { background: 'var(--color-primary)', color: 'var(--color-on-primary)', border: '1px solid transparent' }
+                : {}),
+            }}
+          >
+            {p}
+          </button>
+        ),
+      )}
+
+      <button className="df-icon-btn" onClick={() => onChange(page + 1)} disabled={page === totalPages}
+        aria-label="Next page" style={navBtn(page === totalPages)}>
+        <Icon name="chevron-right" size={15} />
+      </button>
     </div>
   );
 }

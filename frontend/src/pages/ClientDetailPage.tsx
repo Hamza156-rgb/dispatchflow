@@ -55,18 +55,18 @@ export default function ClientDetailPage() {
       {toast && <Toast message={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 24, fontSize: 13 }}>
-        <Link to="/clients" style={{ color: '#2563eb', textDecoration: 'none', fontWeight: 600 }}>Clients</Link>
+        <Link to="/clients" style={{ color: 'var(--color-primary)', textDecoration: 'none', fontWeight: 600 }}>Clients</Link>
         <span style={{ color: 'var(--color-muted)' }}>→</span>
         <span style={{ color: 'var(--color-text)', fontWeight: 600 }}>{client.companyName}</span>
       </div>
 
       {/* Header card */}
-      <div style={{ background: 'var(--color-bg)', borderRadius: 16, border: '1.5px solid var(--color-border)', padding: '24px 28px', marginBottom: 20 }}>
+      <div style={{ background: 'var(--color-bg)', borderRadius: 16, border: '1px solid var(--color-border)', padding: '24px 28px', marginBottom: 20 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
             <Avatar name={client.companyName} size={56} />
             <div>
-              <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: 'var(--color-text)' }}>{client.companyName}</h2>
+              <h2 style={{ margin: 0, fontSize: 21, fontWeight: 750, color: 'var(--color-text)', letterSpacing: '-0.025em' }}>{client.companyName}</h2>
               <div style={{ color: 'var(--color-muted)', fontSize: 14, marginTop: 2 }}>{client.contactPerson} · {client.email}</div>
             </div>
           </div>
@@ -92,7 +92,7 @@ export default function ClientDetailPage() {
       </div>
 
       {/* Invoices */}
-      <div style={{ background: 'var(--color-bg)', borderRadius: 14, border: '1.5px solid var(--color-border)', overflow: 'hidden' }}>
+      <div style={{ background: 'var(--color-bg)', borderRadius: 14, border: '1px solid var(--color-border)', overflow: 'hidden' }}>
         <div style={{ padding: '16px 22px', borderBottom: '1px solid var(--color-border)' }}>
           <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--color-text)' }}>Invoices</h3>
         </div>
@@ -111,7 +111,7 @@ export default function ClientDetailPage() {
               {invoices.map((inv: any) => (
                 <tr key={inv.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
                   <td style={{ padding: '13px 18px' }}>
-                    <Link to={`/invoices/${inv.id}`} style={{ color: '#2563eb', textDecoration: 'none', fontWeight: 700, fontSize: 14 }}>{inv.invoiceNumber}</Link>
+                    <Link to={`/invoices/${inv.id}`} style={{ color: 'var(--color-primary)', textDecoration: 'none', fontWeight: 700, fontSize: 14 }}>{inv.invoiceNumber}</Link>
                   </td>
                   <td style={{ padding: '13px 18px', fontSize: 13, color: 'var(--color-muted)' }}>{new Date(inv.issueDate).toLocaleDateString()}</td>
                   <td style={{ padding: '13px 18px' }}><StatusBadge status={inv.status} /></td>

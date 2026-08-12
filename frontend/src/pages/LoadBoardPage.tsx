@@ -4,7 +4,7 @@ import {
   useSearchLoadBoard, useImportLoadBoardResults,
 } from '../hooks/useApi';
 import { useMediaQuery } from '../hooks/useMediaQuery';
-import { Button, Input, Select, FormField, Modal, Spinner, EmptyState, Toast } from '../components/ui';
+import { Button, Input, Select, FormField, Modal, Spinner, EmptyState, Toast, PageHeader } from '../components/ui';
 import type { LoadBoardResult, LoadBoardSearchParams } from '../types';
 
 const EQUIPMENT = ['', 'Dry Van', 'Reefer', 'Flatbed', 'Step Deck', 'Power Only', 'Box Truck', 'Hotshot'];
@@ -112,19 +112,18 @@ export default function LoadBoardPage() {
   if (statusLoading) return <Spinner />;
 
   return (
-    <div style={{ padding: isMobile ? 16 : 28 }}>
+    <div style={{ padding: isMobile ? 16 : 26 }}>
       {toast && <Toast message={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
 
-      <div style={{ marginBottom: 22 }}>
-        <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: 'var(--color-text)' }}>🔎 Load Board</h2>
-        <p style={{ margin: '4px 0 0', color: 'var(--color-muted)', fontSize: 14 }}>
-          Search {status?.provider ?? 'DAT'} postings and pull the ones you book straight into your loads.
-        </p>
-      </div>
+      <PageHeader
+        icon="search"
+        title="Load Board"
+        subtitle={`Search ${status?.provider ?? 'DAT'} postings and pull the ones you book straight into your loads.`}
+      />
 
       {/* Demo-data banner — no live credentials configured on the server yet */}
       {status?.mock && (
-        <div style={{ background: '#fef3c7', color: '#92400e', border: '1.5px solid #fde68a', borderRadius: 12, padding: '12px 16px', marginBottom: 18, fontSize: 13, lineHeight: 1.6 }}>
+        <div style={{ background: 'var(--color-warning-soft)', color: 'var(--color-warning)', border: '1px solid var(--color-warning-line)', borderRadius: 12, padding: '12px 16px', marginBottom: 18, fontSize: 13, lineHeight: 1.6 }}>
           <strong>Demo data.</strong> The server is running the sample load board, so these postings are made up.
           Everything else here is real — search, filters, import and duplicate detection all behave exactly as they
           will once the {status.provider} API credentials are configured.
@@ -132,9 +131,9 @@ export default function LoadBoardPage() {
       )}
 
       {/* Connection card */}
-      <div style={{ background: 'var(--color-bg)', borderRadius: 16, border: '1.5px solid var(--color-border)', padding: '16px 20px', marginBottom: 18, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+      <div style={{ background: 'var(--color-bg)', borderRadius: 16, border: '1px solid var(--color-border)', padding: '16px 20px', marginBottom: 18, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
-          <div style={{ width: 40, height: 40, borderRadius: 10, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, background: status?.connected ? '#dcfce7' : '#f3f4f6' }}>
+          <div style={{ width: 40, height: 40, borderRadius: 10, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, background: status?.connected ? 'var(--color-success-soft)' : 'var(--color-neutral-soft)' }}>
             {status?.connected ? '🔗' : '🔌'}
           </div>
           <div style={{ minWidth: 0 }}>
@@ -147,7 +146,7 @@ export default function LoadBoardPage() {
                 : 'Connect the load board account you already subscribe to.'}
             </div>
             {status?.lastError && (
-              <div style={{ fontSize: 12, color: '#b91c1c', marginTop: 4 }}>⚠️ {status.lastError}</div>
+              <div style={{ fontSize: 12, color: 'var(--color-danger)', marginTop: 4 }}>⚠️ {status.lastError}</div>
             )}
           </div>
         </div>
@@ -168,7 +167,7 @@ export default function LoadBoardPage() {
       </div>
 
       {/* Search panel */}
-      <div style={{ background: 'var(--color-bg)', borderRadius: 16, border: '1.5px solid var(--color-border)', padding: '18px 20px', marginBottom: 18 }}>
+      <div style={{ background: 'var(--color-bg)', borderRadius: 16, border: '1px solid var(--color-border)', padding: '18px 20px', marginBottom: 18 }}>
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : '2fr 1fr 2fr 1fr 1fr', gap: 12 }}>
           <FormField label="Origin City"><Input value={params.originCity} onChange={(e) => set('originCity', e.target.value)} placeholder="Chicago" /></FormField>
           <FormField label="State"><Input value={params.originState} onChange={(e) => set('originState', e.target.value)} placeholder="IL" maxLength={2} /></FormField>
@@ -200,7 +199,7 @@ export default function LoadBoardPage() {
 
       {/* Results */}
       {results !== null && (
-        <div style={{ background: 'var(--color-bg)', borderRadius: 16, border: '1.5px solid var(--color-border)', overflow: 'hidden' }}>
+        <div style={{ background: 'var(--color-bg)', borderRadius: 16, border: '1px solid var(--color-border)', overflow: 'hidden' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, padding: '14px 18px', borderBottom: '1px solid var(--color-border)', flexWrap: 'wrap' }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-text)' }}>
               {results.length} posting{results.length !== 1 ? 's' : ''}
@@ -262,7 +261,7 @@ export default function LoadBoardPage() {
                       </td>
                       <td style={{ padding: '10px 16px', textAlign: 'center' }}>
                         {r.importedAs ? (
-                          <span style={{ padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 700, color: '#15803d', background: '#dcfce7', whiteSpace: 'nowrap' }}>
+                          <span style={{ padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 700, color: 'var(--color-success)', background: 'var(--color-success-soft)', whiteSpace: 'nowrap' }}>
                             ✓ {r.importedAs}
                           </span>
                         ) : (
@@ -292,7 +291,7 @@ export default function LoadBoardPage() {
           Credentials are encrypted before they're stored and are never sent back to the browser.
         </p>
         {status?.mock && (
-          <div style={{ background: '#dbeafe', color: '#1d4ed8', padding: '10px 14px', borderRadius: 8, fontSize: 12, marginBottom: 16, lineHeight: 1.5 }}>
+          <div style={{ background: 'var(--color-info-soft)', color: 'var(--color-info)', padding: '10px 14px', borderRadius: 8, fontSize: 12, marginBottom: 16, lineHeight: 1.5 }}>
             The server is in demo mode, so anything you enter here will connect — it's for trying the flow.
           </div>
         )}

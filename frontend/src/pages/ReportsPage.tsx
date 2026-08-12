@@ -5,7 +5,7 @@ import {
 } from 'recharts';
 import { useReports } from '../hooks/useApi';
 import { useMediaQuery } from '../hooks/useMediaQuery';
-import { Select, Spinner } from '../components/ui';
+import { Select, Spinner, Icon } from '../components/ui';
 
 const fmt = (n: number) => `$${Number(n).toLocaleString('en-US')}`;
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -14,7 +14,8 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 const card: React.CSSProperties = {
-  background: 'var(--color-bg)', borderRadius: 14, border: '1.5px solid var(--color-border)', padding: '20px 24px',
+  background: 'var(--color-bg)', borderRadius: 16, border: '1px solid var(--color-border)',
+  padding: '20px 22px', boxShadow: 'var(--shadow-sm)',
 };
 
 export default function ReportsPage() {
@@ -32,11 +33,21 @@ export default function ReportsPage() {
   const totalRevenue = monthly.reduce((s: number, m: any) => s + m.revenue, 0);
 
   return (
-    <div style={{ padding: isMobile ? 16 : 28 }}>
+    <div style={{ padding: isMobile ? 16 : 26 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
-        <div>
-          <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: 'var(--color-text)' }}>Revenue {year}</h2>
-          <p style={{ margin: '4px 0 0', color: 'var(--color-muted)', fontSize: 14 }}>Total collected: <strong style={{ color: '#16a34a' }}>{fmt(totalRevenue)}</strong></p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 13, minWidth: 0 }}>
+          <div style={{
+            width: 40, height: 40, borderRadius: 12, flexShrink: 0,
+            background: 'var(--color-primary-soft)', color: 'var(--color-primary)',
+            border: '1px solid var(--color-primary-line)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Icon name="chart" size={20} />
+          </div>
+          <div>
+            <h2 style={{ margin: 0, fontSize: 21, fontWeight: 750, color: 'var(--color-text)', letterSpacing: '-0.025em' }}>Revenue {year}</h2>
+            <p style={{ margin: '3px 0 0', color: 'var(--color-muted)', fontSize: 13.5 }}>Total collected: <strong style={{ color: 'var(--color-success)' }}>{fmt(totalRevenue)}</strong></p>
+          </div>
         </div>
         <div style={{ width: 130 }}>
           <Select value={year} onChange={(e) => setYear(Number(e.target.value))}>
@@ -89,7 +100,7 @@ export default function ReportsPage() {
                   <div style={{ fontSize: 11, color: 'var(--color-muted)' }}>{c.count} invoice{c.count !== 1 ? 's' : ''}</div>
                 </div>
               </div>
-              <div style={{ fontWeight: 800, fontSize: 14, color: '#16a34a' }}>{fmt(c.revenue)}</div>
+              <div style={{ fontWeight: 800, fontSize: 14, color: 'var(--color-success)' }}>{fmt(c.revenue)}</div>
             </div>
           )) : <div style={{ color: 'var(--color-muted)', fontSize: 13, padding: 20 }}>No paid invoices yet.</div>}
         </div>

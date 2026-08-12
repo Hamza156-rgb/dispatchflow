@@ -55,7 +55,11 @@ export default function Layout() {
       {isMobile && mobileOpen && (
         <div
           onClick={() => setMobileOpen(false)}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000 }}
+          style={{
+            position: 'fixed', inset: 0, background: 'var(--scrim)', zIndex: 1000,
+            backdropFilter: 'blur(2px)', WebkitBackdropFilter: 'blur(2px)',
+            animation: 'fadeIn 160ms ease',
+          }}
         />
       )}
 
@@ -69,7 +73,10 @@ export default function Layout() {
           onOpenMenu={() => setMobileOpen(true)}
         />
         <main style={{ flex: 1, overflow: 'auto' }}>
-          <Outlet />
+          {/* Keyed so each route fades in rather than snapping into place. */}
+          <div key={location.pathname} className="df-fade-in">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

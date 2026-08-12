@@ -1,4 +1,5 @@
 import { useLocation } from 'react-router-dom';
+import { Icon } from '../ui/icons';
 
 interface TopBarProps {
   darkMode: boolean;
@@ -13,6 +14,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/dashboard': 'Dashboard',
   '/clients': 'Clients',
   '/loads': 'Loads',
+  '/load-board': 'Load Board',
   '/invoices': 'Invoices',
   '/invoices/new': 'Create Invoice',
   '/reports': 'Reports',
@@ -36,43 +38,54 @@ export default function TopBar({ darkMode, onToggleDark, onLogout, showMenu, onO
       alignItems: 'center',
       justifyContent: 'space-between',
       gap: 12,
-      padding: showMenu ? '0 16px' : '0 28px',
+      padding: showMenu ? '0 16px' : '0 26px',
       background: 'var(--color-bg)',
       borderBottom: '1px solid var(--color-border)',
       position: 'sticky',
       top: 0,
       zIndex: 100,
+      flexShrink: 0,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
         {showMenu && (
-          <button onClick={onOpenMenu} aria-label="Open menu"
-            style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)',
-              borderRadius: 8, padding: '6px 11px', cursor: 'pointer', fontSize: 17, lineHeight: 1,
-              display: 'flex', alignItems: 'center', color: 'var(--color-text)' }}>
-            ☰
+          <button onClick={onOpenMenu} aria-label="Open menu" className="df-icon-btn" style={{ padding: 8 }}>
+            <Icon name="menu" size={18} />
           </button>
         )}
-        <h1 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: 'var(--color-text)',
-          letterSpacing: '-0.3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        <h1 style={{
+          margin: 0, fontSize: 18, fontWeight: 700, color: 'var(--color-text)',
+          letterSpacing: '-0.025em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+        }}>
           {title}
         </h1>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-        {/* Dark mode toggle */}
-        <button onClick={onToggleDark}
-          style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)',
-            borderRadius: 8, padding: '7px 12px', cursor: 'pointer', fontSize: 15,
-            display: 'flex', alignItems: 'center' }}>
-          {darkMode ? '☀️' : '🌙'}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+        {/* Theme toggle */}
+        <button
+          onClick={onToggleDark}
+          className="df-icon-btn"
+          aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+          title={darkMode ? 'Light mode' : 'Dark mode'}
+          style={{ padding: 8 }}
+        >
+          <Icon name={darkMode ? 'sun' : 'moon'} size={17} />
         </button>
 
+        {/* Divider */}
+        <span style={{ width: 1, height: 22, background: 'var(--color-border)', margin: '0 2px' }} />
+
         {/* Logout */}
-        <button onClick={onLogout}
-          style={{ background: 'transparent', border: '1.5px solid var(--color-border)',
-            borderRadius: 8, padding: '7px 18px', cursor: 'pointer', fontWeight: 600,
-            fontSize: 13, color: 'var(--color-muted)', fontFamily: 'inherit' }}>
-          Sign out
+        <button
+          onClick={onLogout}
+          className="df-icon-btn"
+          style={{
+            padding: '7px 14px', gap: 7, fontWeight: 600, fontSize: 13,
+            fontFamily: 'inherit', borderRadius: 10,
+          }}
+        >
+          <Icon name="logout" size={15} />
+          <span>Sign out</span>
         </button>
       </div>
     </header>

@@ -2,20 +2,20 @@ import { useMemo, useState } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { useLocation } from 'react-router-dom';
-import { Spinner, Toast, Avatar } from '../components/ui';
+import { Spinner, Toast, Avatar, StatCard, Icon } from '../components/ui';
 import { useAdminPlans, useCreatePlan, useDeletePlan, useOrganizations, useRecordOrgPayment, useUpdateOrganization, useUpdatePlan } from '../hooks/useApi';
 import type { PricingPlan } from '../types';
 
 const DAY = 86_400_000;
 function billing(o: any) {
-  if (o.accountStatus === 'SUSPENDED') return { label: 'Suspended', c: '#b91c1c', bg: '#fee2e2', sub: '' };
-  if (!o.currentPeriodEnd) return { label: 'Awaiting payment', c: '#b45309', bg: '#fef3c7', sub: 'Never paid' };
+  if (o.accountStatus === 'SUSPENDED') return { label: 'Suspended', c: 'var(--color-danger)', bg: 'var(--color-danger-soft)', sub: '' };
+  if (!o.currentPeriodEnd) return { label: 'Awaiting payment', c: 'var(--color-warning)', bg: 'var(--color-warning-soft)', sub: 'Never paid' };
   const end = new Date(o.currentPeriodEnd).getTime();
   const days = Math.ceil((end - Date.now()) / DAY);
   const sub = new Date(o.currentPeriodEnd).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  if (days < 0) return { label: `Overdue ${-days}d`, c: '#b91c1c', bg: '#fee2e2', sub: `Due ${sub}` };
-  if (days <= 7) return { label: `Due in ${days}d`, c: '#b45309', bg: '#fef3c7', sub: `Due ${sub}` };
-  return { label: 'Paid', c: '#15803d', bg: '#dcfce7', sub: `Until ${sub}` };
+  if (days < 0) return { label: `Overdue ${-days}d`, c: 'var(--color-danger)', bg: 'var(--color-danger-soft)', sub: `Due ${sub}` };
+  if (days <= 7) return { label: `Due in ${days}d`, c: 'var(--color-warning)', bg: 'var(--color-warning-soft)', sub: `Due ${sub}` };
+  return { label: 'Paid', c: 'var(--color-success)', bg: 'var(--color-success-soft)', sub: `Until ${sub}` };
 }
 
 const blankPlan: Partial<PricingPlan> = { code: '', name: '', tagline: '', description: '', price: 0, userLimit: 0, popular: false, active: true, sortOrder: 0, features: [] };
@@ -89,7 +89,7 @@ export default function AdminPage() {
     const res = (error as any)?.response;
     const detail = res?.data?.error ?? (res ? `HTTP ${res.status}` : 'Could not reach the server');
     return (
-      <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', borderRadius: 12, padding: '14px 16px', fontSize: 13, fontWeight: 600 }}>
+      <div style={{ background: 'var(--color-danger-soft)', border: '1px solid var(--color-danger-line)', color: 'var(--color-danger)', borderRadius: 12, padding: '14px 16px', fontSize: 13, fontWeight: 600 }}>
         Couldn't load this data — {detail}.
       </div>
     );
@@ -100,31 +100,31 @@ export default function AdminPage() {
   const chipBtn: React.CSSProperties = {
     padding: '8px 14px',
     borderRadius: 999,
-    border: '1px solid rgba(148,163,184,0.35)',
-    background: 'linear-gradient(180deg, rgba(255,255,255,0.95), rgba(241,245,249,0.95))',
-    color: '#0f172a',
+    border: '1px solid var(--color-border-strong)',
+    background: 'var(--color-bg)',
+    color: 'var(--color-text)',
     fontSize: 12,
-    fontWeight: 800,
+    fontWeight: 650,
     cursor: 'pointer',
-    boxShadow: '0 1px 2px rgba(15,23,42,0.08)',
-    transition: 'transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease',
+    boxShadow: 'var(--shadow-xs)',
+    transition: 'transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, background 0.15s ease',
   };
   const primaryChipBtn: React.CSSProperties = {
     ...chipBtn,
-    background: 'linear-gradient(180deg, #22c55e, #16a34a)',
+    background: '#16a34a',
     color: '#fff',
-    border: '1px solid rgba(22,163,74,0.35)',
+    border: '1px solid transparent',
   };
   const selectStyle: React.CSSProperties = {
-    padding: '10px 40px 10px 14px',
-    borderRadius: 12,
-    border: '1px solid rgba(148,163,184,0.45)',
-    background: 'linear-gradient(180deg, rgba(255,255,255,0.96), rgba(248,250,252,0.96))',
+    padding: '9px 36px 9px 13px',
+    borderRadius: 10,
+    border: '1px solid var(--color-border-strong)',
+    background: 'var(--color-bg)',
     color: 'var(--color-text)',
-    fontWeight: 800,
-    fontSize: 12,
+    fontWeight: 600,
+    fontSize: 12.5,
     outline: 'none',
-    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.8), 0 1px 2px rgba(15,23,42,0.05)',
+    boxShadow: 'var(--shadow-xs)',
     cursor: 'pointer',
     appearance: 'none',
   };
@@ -132,9 +132,23 @@ export default function AdminPage() {
   return (
     <div style={{ padding: isMobile ? 16 : 28 }}>
       {toast && <Toast message={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
-      <div style={{ borderRadius: 18, padding: isMobile ? '22px 20px' : '26px 28px', marginBottom: 22, background: 'radial-gradient(600px 200px at 90% -20%, rgba(124,58,237,0.35), transparent), #0b1220', color: '#fff' }}>
-        <h2 style={{ margin: 0, fontSize: 22, fontWeight: 900 }}>🛡️ Super Admin Console</h2>
-        <p style={{ margin: '6px 0 0', color: '#94a3b8', fontSize: 14 }}>Manage organizations, plans, and billing from one place.</p>
+      <div style={{
+        borderRadius: 18, padding: isMobile ? '22px 20px' : '24px 28px', marginBottom: 20,
+        background: 'radial-gradient(700px 240px at 88% -30%, rgba(124,58,237,0.42), transparent), linear-gradient(180deg, #101a2e 0%, #0b1220 100%)',
+        color: '#fff', border: '1px solid #1c2740', boxShadow: 'var(--shadow-md)',
+        display: 'flex', alignItems: 'center', gap: 15,
+      }}>
+        <div style={{
+          width: 44, height: 44, borderRadius: 13, flexShrink: 0,
+          background: 'rgba(96,165,250,0.14)', border: '1px solid rgba(96,165,250,0.28)',
+          color: '#93c5fd', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <Icon name="shield" size={22} />
+        </div>
+        <div>
+          <h2 style={{ margin: 0, fontSize: 20, fontWeight: 750, letterSpacing: '-0.025em' }}>Super Admin Console</h2>
+          <p style={{ margin: '4px 0 0', color: '#93a3bb', fontSize: 13.5 }}>Manage organizations, plans, and billing from one place.</p>
+        </div>
       </div>
 
       <div style={{ color: 'var(--color-muted)', fontSize: 13, marginBottom: 18 }}>
@@ -146,22 +160,15 @@ export default function AdminPage() {
       {section === 'overview' && (
         <>
           {orgError && <div style={{ marginBottom: 18 }}><ErrorNote error={orgError} /></div>}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px,1fr))', gap: 16, marginBottom: 22 }}>
-            {[
-              ['🏢', 'Organizations', summary.orgs, '#e0e7ff'],
-              ['✅', 'Active', summary.active, '#dcfce7'],
-              ['⚠️', 'Payments Due', summary.due, '#fee2e2'],
-              ['💵', 'Your MRR', `$${summary.mrr.toLocaleString('en-US')}`, '#dcfce7'],
-              ['👥', 'Total Users', summary.users, '#dbeafe'],
-            ].map(([icon, label, value, bg]) => (
-              <div key={String(label)} style={{ background: 'var(--color-bg)', borderRadius: 16, border: '1.5px solid var(--color-border)', padding: '18px 20px', display: 'flex', alignItems: 'center', gap: 14 }}>
-                <div style={{ width: 46, height: 46, borderRadius: 12, background: bg as string, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>{icon as string}</div>
-                <div><div style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-muted)', textTransform: 'uppercase' }}>{label as string}</div><div style={{ fontSize: 24, fontWeight: 900 }}>{String(value)}</div></div>
-              </div>
-            ))}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px,1fr))', gap: 14, marginBottom: 20 }}>
+            <StatCard icon="building" label="Organizations" value={String(summary.orgs)} tone="violet" />
+            <StatCard icon="check-circle" label="Active" value={String(summary.active)} tone="success" />
+            <StatCard icon="alert" label="Payments Due" value={String(summary.due)} tone="danger" valueColor="var(--color-danger)" />
+            <StatCard icon="money" label="Your MRR" value={`$${summary.mrr.toLocaleString('en-US')}`} tone="success" valueColor="var(--color-success)" />
+            <StatCard icon="users" label="Total Users" value={String(summary.users)} tone="primary" />
           </div>
-          <div style={{ background: 'var(--color-bg)', border: '1.5px solid var(--color-border)', borderRadius: 16, padding: 18 }}>
-            <div style={{ fontWeight: 800, marginBottom: 8 }}>Quick Notes</div>
+          <div className="df-card" style={{ padding: 20 }}>
+            <div style={{ fontWeight: 700, marginBottom: 8 }}>Quick Notes</div>
             <div style={{ color: 'var(--color-muted)', fontSize: 14, lineHeight: 1.7 }}>
               Use <strong>Organizations</strong> for billing and account status.
               Use <strong>Plans</strong> to edit pricing, seat limits, and landing page cards.
@@ -171,7 +178,7 @@ export default function AdminPage() {
       )}
 
       {section === 'organizations' && (
-        <div style={{ background: 'var(--color-bg)', borderRadius: 16, border: '1.5px solid var(--color-border)', overflow: 'hidden' }}>
+        <div style={{ background: 'var(--color-bg)', borderRadius: 16, border: '1px solid var(--color-border)', overflow: 'hidden' }}>
           <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between' }}>
             <h3 style={{ margin: 0, fontSize: 15, fontWeight: 800 }}>All Organizations</h3>
             <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-muted)', background: 'var(--color-surface)', padding: '4px 10px', borderRadius: 20 }}>{orgs.length} total</span>
@@ -225,7 +232,7 @@ export default function AdminPage() {
 
       {section === 'plans' && (
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '380px 1fr', gap: 18 }}>
-          <div style={{ background: 'var(--color-bg)', border: '1.5px solid var(--color-border)', borderRadius: 16, padding: 18 }}>
+          <div style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)', borderRadius: 16, padding: 18 }}>
             <div style={{ fontWeight: 800, marginBottom: 12 }}>{editing?.id ? 'Edit plan' : 'New plan'}</div>
             <div style={{ display: 'grid', gap: 10 }}>
               {(['code','name','tagline','description','price','userLimit','sortOrder'] as const).map((k) => (
@@ -246,7 +253,7 @@ export default function AdminPage() {
               </div>
             </div>
           </div>
-          <div style={{ background: 'var(--color-bg)', border: '1.5px solid var(--color-border)', borderRadius: 16, padding: 18 }}>
+          <div style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)', borderRadius: 16, padding: 18 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
               <div style={{ fontWeight: 800 }}>Plan catalog</div>
               <div style={{ color: 'var(--color-muted)', fontSize: 12 }}>{plans.length} plans</div>
@@ -263,7 +270,7 @@ export default function AdminPage() {
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>{(p.features || []).map((f) => <span key={f} style={{ fontSize: 12, background: 'var(--color-surface)', borderRadius: 999, padding: '4px 10px' }}>{f}</span>)}</div>
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button onClick={() => startEdit(p)} type="button" style={chipBtn}>Edit</button>
-                  <button onClick={() => deletePlan.mutateAsync(p.id)} type="button" style={{ ...chipBtn, color: '#b91c1c' }}>{p.active ? 'Delete / deactivate' : 'Remove'}</button>
+                  <button onClick={() => deletePlan.mutateAsync(p.id)} type="button" style={{ ...chipBtn, color: 'var(--color-danger)' }}>{p.active ? 'Delete / deactivate' : 'Remove'}</button>
                 </div>
               </div>
             ))}

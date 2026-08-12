@@ -78,7 +78,7 @@ export default function InvoiceDetailPage() {
 
       {/* Breadcrumb */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20, fontSize: 13, color: 'var(--color-muted)' }}>
-        <Link to="/invoices" style={{ color: '#2563eb', textDecoration: 'none', fontWeight: 600 }}>Invoices</Link>
+        <Link to="/invoices" style={{ color: 'var(--color-primary)', textDecoration: 'none', fontWeight: 600 }}>Invoices</Link>
         <span>→</span>
         <span style={{ color: 'var(--color-text)', fontWeight: 600 }}>{invoice.invoiceNumber}</span>
       </div>
@@ -86,7 +86,7 @@ export default function InvoiceDetailPage() {
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'minmax(0, 1fr) 320px', gap: 24, alignItems: 'start' }}>
         {/* ─── LEFT: invoice document ─────────────────────────────── */}
         <div>
-          <div style={{ background: 'var(--color-bg)', borderRadius: 16, border: '1.5px solid var(--color-border)', overflow: 'hidden' }}>
+          <div style={{ background: 'var(--color-bg)', borderRadius: 16, border: '1px solid var(--color-border)', overflow: 'hidden' }}>
             {/* Header */}
             <div style={{ background: '#0f172a', padding: isMobile ? '20px' : '28px 36px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
               <div>
@@ -157,7 +157,7 @@ export default function InvoiceDetailPage() {
                     </div>
                   ))}
                   {paid > 0 && (
-                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', fontSize: 13, color: '#16a34a', borderBottom: '1px solid var(--color-border)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', fontSize: 13, color: 'var(--color-success)', borderBottom: '1px solid var(--color-border)' }}>
                       <span>Paid</span><span>−${paid.toFixed(2)}</span>
                     </div>
                   )}
@@ -180,7 +180,7 @@ export default function InvoiceDetailPage() {
 
           {/* Payment history */}
           {invoice.payments && invoice.payments.length > 0 && (
-            <div style={{ marginTop: 20, background: 'var(--color-bg)', borderRadius: 14, border: '1.5px solid var(--color-border)', overflow: 'hidden' }}>
+            <div style={{ marginTop: 20, background: 'var(--color-bg)', borderRadius: 14, border: '1px solid var(--color-border)', overflow: 'hidden' }}>
               <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--color-border)', fontWeight: 700, fontSize: 14 }}>Payment History</div>
               {invoice.payments.map((p: any) => (
                 <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 24px', borderBottom: '1px solid var(--color-border)' }}>
@@ -190,7 +190,7 @@ export default function InvoiceDetailPage() {
                       {new Date(p.paymentDate).toLocaleDateString()} {p.referenceNumber && `· Ref: ${p.referenceNumber}`}
                     </div>
                   </div>
-                  <div style={{ fontSize: 16, fontWeight: 800, color: '#16a34a' }}>${Number(p.amount).toFixed(2)}</div>
+                  <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--color-success)' }}>${Number(p.amount).toFixed(2)}</div>
                 </div>
               ))}
             </div>
@@ -200,22 +200,22 @@ export default function InvoiceDetailPage() {
         {/* ─── RIGHT: actions sidebar ─────────────────────────────── */}
         <aside style={{ position: 'sticky', top: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>
           {/* Balance summary */}
-          <div style={{ background: 'var(--color-bg)', borderRadius: 14, border: '1.5px solid var(--color-border)', padding: '20px 22px' }}>
+          <div style={{ background: 'var(--color-bg)', borderRadius: 14, border: '1px solid var(--color-border)', padding: '20px 22px' }}>
             <div style={{ ...sectionLabel, marginBottom: 12 }}>Summary</div>
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', fontSize: 14, color: 'var(--color-muted)' }}>
               <span>Total</span><span style={{ fontWeight: 700, color: 'var(--color-text)' }}>{fmt(invoice.totalAmount)}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', fontSize: 14, color: 'var(--color-muted)' }}>
-              <span>Paid</span><span style={{ fontWeight: 700, color: '#16a34a' }}>{fmt(paid)}</span>
+              <span>Paid</span><span style={{ fontWeight: 700, color: 'var(--color-success)' }}>{fmt(paid)}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0 0', marginTop: 6, borderTop: '1px solid var(--color-border)', fontSize: 16 }}>
               <span style={{ fontWeight: 700, color: 'var(--color-text)' }}>Balance Due</span>
-              <span style={{ fontWeight: 900, color: balance > 0 ? '#0f172a' : '#16a34a' }}>{fmt(balance)}</span>
+              <span className="df-num" style={{ fontWeight: 800, color: balance > 0 ? 'var(--color-text)' : 'var(--color-success)' }}>{fmt(balance)}</span>
             </div>
           </div>
 
           {/* Actions */}
-          <div style={{ background: 'var(--color-bg)', borderRadius: 14, border: '1.5px solid var(--color-border)', padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ background: 'var(--color-bg)', borderRadius: 14, border: '1px solid var(--color-border)', padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div>
               <div style={{ ...sectionLabel, marginBottom: 8 }}>Status</div>
               <Select value={invoice.status} disabled={updateInvoice.isPending} onChange={(e) => handleStatusChange(e.target.value)}>
@@ -245,7 +245,7 @@ export default function InvoiceDetailPage() {
       {/* Payment Modal */}
       <Modal open={payModal} onClose={() => setPayModal(false)} title="Record Payment" width={460}>
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
-          <div style={{ fontSize: 36, fontWeight: 900, color: '#16a34a' }}>{fmt(balance)}</div>
+          <div style={{ fontSize: 36, fontWeight: 900, color: 'var(--color-success)' }}>{fmt(balance)}</div>
           <div style={{ color: 'var(--color-muted)', fontSize: 14 }}>Balance due for {invoice.invoiceNumber}</div>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16 }}>
@@ -273,7 +273,7 @@ export default function InvoiceDetailPage() {
           <textarea value={emailMsg} onChange={e => setEmailMsg(e.target.value)} rows={4}
             placeholder="Add a personal message…"
             style={{ width: '100%', padding: '10px 14px', borderRadius: 8, fontSize: 14,
-              border: '1.5px solid var(--color-border)', background: 'var(--color-bg)',
+              border: '1px solid var(--color-border)', background: 'var(--color-bg)',
               color: 'var(--color-text)', outline: 'none', resize: 'vertical', fontFamily: 'inherit' }} />
         </FormField>
         <Button onClick={handleSendEmail} loading={sendEmail.isPending} style={{ width: '100%', justifyContent: 'center' }}>

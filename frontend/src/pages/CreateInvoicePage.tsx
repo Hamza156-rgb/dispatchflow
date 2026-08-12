@@ -4,7 +4,7 @@ import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { useCreateInvoice } from '../hooks/useApi';
 import { useClients, useItemSuggestions } from '../hooks/useApi';
 import { useMediaQuery } from '../hooks/useMediaQuery';
-import { Button, Input, Textarea, Select, FormField, Toast } from '../components/ui';
+import { Button, Input, Textarea, Select, FormField, Toast, PageHeader, Icon } from '../components/ui';
 
 interface ItemRow {
   description: string;
@@ -86,16 +86,18 @@ export default function CreateInvoicePage() {
     }
   };
 
-  const card = { background: 'var(--color-bg)', borderRadius: 14, border: '1.5px solid var(--color-border)', padding: '24px 28px', marginBottom: 20 };
+  const card: React.CSSProperties = { padding: '22px 24px', marginBottom: 18 };
 
   return (
-    <div style={{ padding: isMobile ? 16 : 28, maxWidth: 860, margin: '0 auto' }}>
+    <div style={{ padding: isMobile ? 16 : 26, maxWidth: 880, margin: '0 auto' }}>
       {toast && <Toast message={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
+
+      <PageHeader icon="file" title="New Invoice" subtitle="Build it once — we'll handle the maths and the PDF." />
 
       <form onSubmit={handleSubmit(onSubmit)}>
         {/* Client & Dates */}
-        <div style={card}>
-          <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 700, color: 'var(--color-text)' }}>
+        <div className="df-card" style={card}>
+          <h3 style={{ margin: '0 0 18px', fontSize: 15, fontWeight: 700, color: 'var(--color-text)' }}>
             Invoice Details
           </h3>
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 16 }}>
@@ -117,13 +119,14 @@ export default function CreateInvoicePage() {
         </div>
 
         {/* Line Items */}
-        <div style={card}>
-          <h3 style={{ margin: '0 0 4px', fontSize: 16, fontWeight: 700, color: 'var(--color-text)' }}>
+        <div className="df-card" style={card}>
+          <h3 style={{ margin: '0 0 4px', fontSize: 15, fontWeight: 700, color: 'var(--color-text)' }}>
             Line Items
           </h3>
           {suggestions.length > 0 && (
-            <p style={{ margin: '0 0 14px', fontSize: 12, color: '#7c3aed', fontWeight: 600 }}>
-              ✨ {suggestions.length} smart suggestion{suggestions.length !== 1 ? 's' : ''} from past invoices — start typing a description to auto-fill the rate.
+            <p style={{ margin: '0 0 14px', fontSize: 12.5, color: 'var(--color-violet)', fontWeight: 550, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Icon name="sparkles" size={14} />
+              {suggestions.length} smart suggestion{suggestions.length !== 1 ? 's' : ''} from past invoices — start typing a description to auto-fill the rate.
             </p>
           )}
           {/* Native autocomplete source for description fields */}
@@ -131,14 +134,15 @@ export default function CreateInvoicePage() {
             {suggestions.map((s) => <option key={s.description} value={s.description} />)}
           </datalist>
           <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-          <div style={{ minWidth: 560, border: '1.5px solid var(--color-border)', borderRadius: 10, overflow: 'hidden' }}>
+          <div style={{ minWidth: 560, border: '1px solid var(--color-border)', borderRadius: 12, overflow: 'hidden' }}>
             {/* Header */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 90px 110px 100px 44px',
-              gap: 0, padding: '10px 14px', background: 'var(--color-surface)',
+              gap: 8, padding: '10px 14px', background: 'var(--color-surface)',
               borderBottom: '1px solid var(--color-border)' }}>
-              {['Description', 'Qty', 'Rate ($)', 'Amount', ''].map(h => (
+              {['Description', 'Qty', 'Rate ($)', 'Amount', ''].map((h, i) => (
                 <div key={h} style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-muted)',
-                  textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</div>
+                  textTransform: 'uppercase', letterSpacing: '0.06em',
+                  textAlign: i === 1 || i === 2 || i === 3 ? 'right' : 'left' }}>{h}</div>
               ))}
             </div>
             {/* Rows */}
@@ -153,58 +157,62 @@ export default function CreateInvoicePage() {
                   <input placeholder="e.g. Flatbed haul Chicago→Gary"
                     list="df-item-suggestions"
                     {...register(`items.${idx}.description`, { required: true, onChange: (e) => onDescChange(idx, e.target.value) })}
-                    style={{ padding: '8px 10px', border: '1px solid var(--color-border)', borderRadius: 6,
+                    style={{ padding: '8px 11px', border: '1px solid var(--color-border-strong)', borderRadius: 8,
                       background: 'var(--color-bg)', color: 'var(--color-text)', fontSize: 13,
                       outline: 'none', width: '100%' }} />
                   <input type="number" step="0.01" min="0"
                     {...register(`items.${idx}.quantity`, { required: true, min: 0.01 })}
-                    style={{ padding: '8px 8px', border: '1px solid var(--color-border)', borderRadius: 6,
+                    style={{ padding: '8px 9px', border: '1px solid var(--color-border-strong)', borderRadius: 8,
                       background: 'var(--color-bg)', color: 'var(--color-text)', fontSize: 13,
                       outline: 'none', textAlign: 'right', width: '100%' }} />
                   <input type="number" step="0.01" min="0" placeholder="0.00"
                     {...register(`items.${idx}.rate`, { required: true, min: 0.01 })}
-                    style={{ padding: '8px 8px', border: '1px solid var(--color-border)', borderRadius: 6,
+                    style={{ padding: '8px 9px', border: '1px solid var(--color-border-strong)', borderRadius: 8,
                       background: 'var(--color-bg)', color: 'var(--color-text)', fontSize: 13,
                       outline: 'none', textAlign: 'right', width: '100%' }} />
-                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-text)', textAlign: 'right' }}>
+                  <div className="df-num" style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-text)', textAlign: 'right' }}>
                     ${amt.toFixed(2)}
                   </div>
                   <button type="button" onClick={() => remove(idx)} disabled={fields.length === 1}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444',
-                      fontSize: 16, opacity: fields.length === 1 ? 0.3 : 1, padding: '4px 8px' }}>
-                    ✕
+                    title="Remove line"
+                    className="df-icon-btn is-danger"
+                    style={{ padding: 6, border: 'none', background: 'transparent',
+                      opacity: fields.length === 1 ? 0.3 : 1, justifySelf: 'center' }}>
+                    <Icon name="close" size={15} />
                   </button>
                 </div>
               );
             })}
             <button type="button" onClick={() => append({ description: '', quantity: '1', rate: '' })}
-              style={{ width: '100%', padding: '12px', background: 'transparent', border: 'none',
-                color: '#2563eb', fontWeight: 600, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
-              + Add Line Item
+              className="df-chip-btn"
+              style={{ width: '100%', padding: '11px', background: 'transparent', border: 'none',
+                color: 'var(--color-primary)', fontWeight: 600, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+              <Icon name="plus" size={15} /> Add Line Item
             </button>
           </div>
           </div>
 
           {/* Totals */}
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 20 }}>
-            <div style={{ width: 280 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: 12, alignItems: 'center', marginBottom: 10 }}>
+            <div style={{ width: 300, maxWidth: '100%' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 110px', gap: 12, alignItems: 'center', marginBottom: 10 }}>
                 <label style={{ fontSize: 13, color: 'var(--color-muted)', fontWeight: 600 }}>Tax Rate (%)</label>
                 <input type="number" step="0.1" min="0"
                   {...register('taxRate')}
-                  style={{ padding: '7px 10px', border: '1.5px solid var(--color-border)', borderRadius: 7,
+                  style={{ padding: '8px 11px', border: '1px solid var(--color-border-strong)', borderRadius: 9,
                     background: 'var(--color-bg)', color: 'var(--color-text)', fontSize: 13, outline: 'none', textAlign: 'right' }} />
               </div>
-              <div style={{ background: 'var(--color-surface)', borderRadius: 10, padding: '14px 16px' }}>
+              <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 12, padding: '14px 16px' }}>
                 {[['Subtotal', `$${subtotal.toFixed(2)}`], [`Tax (${watchTax || 0}%)`, `$${taxAmount.toFixed(2)}`]].map(([l, v]) => (
                   <div key={l} style={{ display: 'flex', justifyContent: 'space-between',
-                    fontSize: 13, color: 'var(--color-muted)', padding: '4px 0', borderBottom: '1px solid var(--color-border)' }}>
-                    <span>{l}</span><span>{v}</span>
+                    fontSize: 13, color: 'var(--color-muted)', padding: '5px 0', borderBottom: '1px solid var(--color-border)' }}>
+                    <span>{l}</span><span className="df-num">{v}</span>
                   </div>
                 ))}
-                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0 0',
-                  fontSize: 16, fontWeight: 800, color: 'var(--color-text)' }}>
-                  <span>Total</span><span>${total.toFixed(2)}</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '11px 0 0',
+                  fontSize: 17, fontWeight: 750, color: 'var(--color-text)', letterSpacing: '-0.02em' }}>
+                  <span>Total</span><span className="df-num">${total.toFixed(2)}</span>
                 </div>
               </div>
             </div>
@@ -212,7 +220,7 @@ export default function CreateInvoicePage() {
         </div>
 
         {/* Notes & Terms */}
-        <div style={card}>
+        <div className="df-card" style={card}>
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 20 }}>
             <FormField label="Notes">
               <Textarea rows={3} placeholder="Payment instructions, load details…"
@@ -231,7 +239,7 @@ export default function CreateInvoicePage() {
         {/* Actions */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'flex-end' }}>
           <Button type="button" variant="secondary" onClick={() => navigate('/invoices')}>Cancel</Button>
-          <Button type="submit" loading={createInvoice.isPending}>Create Invoice</Button>
+          <Button type="submit" icon="check" loading={createInvoice.isPending}>Create Invoice</Button>
         </div>
       </form>
     </div>

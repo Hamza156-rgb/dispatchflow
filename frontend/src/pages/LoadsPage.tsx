@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useLoads, useClients, useCreateLoad, useUpdateLoad, useDeleteLoad, useBulkCreateLoads, useParseLoadText } from '../hooks/useApi';
 import { useMediaQuery } from '../hooks/useMediaQuery';
-import { Button, Input, Select, Textarea, FormField, Modal, Spinner, EmptyState, Pagination, Toast, Avatar } from '../components/ui';
+import { Button, Input, Select, Textarea, FormField, Modal, Spinner, EmptyState, Pagination, Toast, Avatar, Card, PageHeader, StatCard, Icon } from '../components/ui';
 import type { Load, LoadPayload, ParsedLoadResponse } from '../types';
 
 // Columns supported by the CSV importer (order used in the template)
@@ -32,11 +32,11 @@ const EQUIPMENT = ['Dry Van', 'Reefer', 'Flatbed', 'Step Deck', 'Power Only', 'B
 const STATUS_FILTERS = ['', 'PENDING', 'ACTIVE', 'DELIVERED', 'CANCELLED'];
 const ALL_STATUSES = ['PENDING', 'ACTIVE', 'DELIVERED', 'CANCELLED'];
 
-const STATUS_STYLE: Record<string, { c: string; bg: string; label: string }> = {
-  PENDING:   { c: '#b45309', bg: '#fef3c7', label: 'Pending' },
-  ACTIVE:    { c: '#1d4ed8', bg: '#dbeafe', label: 'Active' },
-  DELIVERED: { c: '#15803d', bg: '#dcfce7', label: 'Delivered' },
-  CANCELLED: { c: '#6b7280', bg: '#f3f4f6', label: 'Cancelled' },
+const STATUS_STYLE: Record<string, { c: string; bg: string; line: string; label: string }> = {
+  PENDING:   { c: 'var(--color-warning)', bg: 'var(--color-warning-soft)', line: 'var(--color-warning-line)', label: 'Pending' },
+  ACTIVE:    { c: 'var(--color-info)',    bg: 'var(--color-info-soft)',    line: 'var(--color-info-line)',    label: 'Active' },
+  DELIVERED: { c: 'var(--color-success)', bg: 'var(--color-success-soft)', line: 'var(--color-success-line)', label: 'Delivered' },
+  CANCELLED: { c: 'var(--color-faint)',   bg: 'var(--color-neutral-soft)', line: 'var(--color-neutral-line)', label: 'Cancelled' },
 };
 
 // Field names the parser returns → human labels, for the paste preview
@@ -55,18 +55,6 @@ const EMPTY: LoadPayload = {
   pickupAt: '', deliveryAt: '', miles: '', rate: '', equipment: 'Dry Van',
   driver: '', referenceNumber: '', status: 'PENDING', paymentStatus: 'UNPAID', notes: '',
 };
-
-function StatCard({ icon, label, value, accent, bg }: { icon: string; label: string; value: string; accent: string; bg: string }) {
-  return (
-    <div style={{ background: 'var(--color-bg)', borderRadius: 16, border: '1.5px solid var(--color-border)', padding: '18px 20px', display: 'flex', alignItems: 'center', gap: 14 }}>
-      <div style={{ width: 46, height: 46, borderRadius: 12, background: bg, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>{icon}</div>
-      <div style={{ minWidth: 0 }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</div>
-        <div style={{ fontSize: 22, fontWeight: 900, color: accent, marginTop: 3, whiteSpace: 'nowrap' }}>{value}</div>
-      </div>
-    </div>
-  );
-}
 
 export default function LoadsPage() {
   const isMobile = useMediaQuery('(max-width: 768px)');
@@ -250,28 +238,31 @@ export default function LoadsPage() {
     finally { setBusyId(null); }
   };
 
-  const th: React.CSSProperties = { padding: '12px 16px', fontSize: 11, fontWeight: 700, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap', textAlign: 'left' };
-  const td: React.CSSProperties = { padding: '12px 16px', fontSize: 13, color: 'var(--color-text)', whiteSpace: 'nowrap' };
-  const filterLabel: React.CSSProperties = { fontSize: 10, fontWeight: 700, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 };
-  const dateStyle: React.CSSProperties = { padding: '9px 12px', borderRadius: 8, fontSize: 13, border: '1.5px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text)', outline: 'none', fontFamily: 'inherit' };
-  const presetBtn: React.CSSProperties = { padding: '9px 12px', borderRadius: 8, border: '1.5px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text)', cursor: 'pointer', fontWeight: 600, fontSize: 12, fontFamily: 'inherit', whiteSpace: 'nowrap' };
+  const th: React.CSSProperties = { padding: '11px 16px', fontSize: 11, fontWeight: 700, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap', textAlign: 'left' };
+  const td: React.CSSProperties = { padding: '11px 16px', fontSize: 13, color: 'var(--color-text)', whiteSpace: 'nowrap' };
+  const filterLabel: React.CSSProperties = { fontSize: 10, fontWeight: 700, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 };
+  const dateStyle: React.CSSProperties = { padding: '9px 12px', borderRadius: 10, fontSize: 13, border: '1px solid var(--color-border-strong)', background: 'var(--color-bg)', color: 'var(--color-text)', outline: 'none', fontFamily: 'inherit', boxShadow: 'var(--shadow-xs)' };
+  const presetBtn: React.CSSProperties = { padding: '9px 13px', borderRadius: 10, border: '1px solid var(--color-border-strong)', background: 'var(--color-bg)', color: 'var(--color-text)', cursor: 'pointer', fontWeight: 600, fontSize: 12, fontFamily: 'inherit', whiteSpace: 'nowrap', boxShadow: 'var(--shadow-xs)' };
   const route = (l: Load) => `${[l.originCity, l.originState].filter(Boolean).join(', ') || '—'} → ${[l.destCity, l.destState].filter(Boolean).join(', ') || '—'}`;
   const perMile = (l: Load) => { const m = Number(l.miles || 0); return m > 0 ? `$${(Number(l.rate) / m).toFixed(2)}` : '—'; };
 
   return (
-    <div style={{ padding: isMobile ? 16 : 28 }}>
+    <div style={{ padding: isMobile ? 16 : 26 }}>
       {toast && <Toast message={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
 
-      <div style={{ marginBottom: 22 }}>
-        <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: 'var(--color-text)' }}>🚚 Loads</h2>
-        <p style={{ margin: '4px 0 0', color: 'var(--color-muted)', fontSize: 14 }}>Track every shipment from booked to delivered to paid.</p>
-      </div>
+      <PageHeader
+        icon="truck"
+        title="Loads"
+        subtitle="Track every shipment from booked to delivered to paid."
+        action={<Button icon="plus" onClick={openNew}>New Load</Button>}
+      />
 
+      {/* Import helper */}
       <div style={{
-        background: 'linear-gradient(135deg, #eff6ff 0%, #e0f2fe 100%)',
-        border: '1.5px solid #93c5fd',
+        background: 'var(--color-primary-soft)',
+        border: '1px solid var(--color-primary-line)',
         borderRadius: 16,
-        padding: '16px 18px',
+        padding: '15px 18px',
         marginBottom: 18,
         display: 'flex',
         alignItems: isMobile ? 'flex-start' : 'center',
@@ -279,42 +270,42 @@ export default function LoadsPage() {
         gap: 14,
         flexWrap: 'wrap',
       }}>
-        <div style={{ minWidth: 0 }}>
-          <div style={{ fontWeight: 800, fontSize: 14, color: '#1e3a8a' }}>Free data import</div>
-          <div style={{ fontSize: 13, color: '#1d4ed8', lineHeight: 1.6, marginTop: 4 }}>
-            No API endpoints needed. Paste a load email or upload a CSV, review the fields, then save the load into your CRM.
+        <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', minWidth: 0 }}>
+          <span style={{ color: 'var(--color-primary)', marginTop: 1 }}><Icon name="sparkles" size={19} /></span>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--color-text)' }}>Free data import</div>
+            <div style={{ fontSize: 13, color: 'var(--color-muted)', lineHeight: 1.6, marginTop: 3 }}>
+              No API endpoints needed. Paste a load email or upload a CSV, review the fields, then save the load into your CRM.
+            </div>
           </div>
         </div>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <Button variant="secondary" onClick={() => { setPasteText(''); setParsed(null); setPasteModal(true); }}>📋 Paste Load</Button>
-          <Button variant="secondary" onClick={() => { setImportRows([]); setImportErr(''); setImportModal(true); }}>⬆️ Import CSV</Button>
+          <Button variant="secondary" icon="clipboard" onClick={() => { setPasteText(''); setParsed(null); setPasteModal(true); }}>Paste Load</Button>
+          <Button variant="secondary" icon="upload" onClick={() => { setImportRows([]); setImportErr(''); setImportModal(true); }}>Import CSV</Button>
         </div>
       </div>
 
       {/* Summary cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 22 }}>
-        <StatCard icon="📦" label="Total Loads" value={String(summary.totalLoads)} accent="var(--color-text)" bg="#e0e7ff" />
-        <StatCard icon="🚛" label="In Transit" value={String(summary.active)} accent="#2563eb" bg="#dbeafe" />
-        <StatCard icon="✅" label="Delivered" value={String(summary.delivered)} accent="#16a34a" bg="#dcfce7" />
-        <StatCard icon="💸" label="Unpaid to You" value={fmt(summary.unpaidAmount)} accent="#ef4444" bg="#fee2e2" />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14, marginBottom: 20 }}>
+        <StatCard icon="package" label="Total Loads" value={String(summary.totalLoads)} tone="violet" />
+        <StatCard icon="truck" label="In Transit" value={String(summary.active)} tone="primary" valueColor="var(--color-primary)" />
+        <StatCard icon="check-circle" label="Delivered" value={String(summary.delivered)} tone="success" valueColor="var(--color-success)" />
+        <StatCard icon="money" label="Unpaid to You" value={fmt(summary.unpaidAmount)} tone="danger" valueColor="var(--color-danger)" />
       </div>
 
       {/* Table card */}
-      <div style={{ background: 'var(--color-bg)', borderRadius: 16, border: '1.5px solid var(--color-border)', overflow: 'hidden' }}>
+      <Card>
         {/* Toolbar */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, padding: '16px 18px', borderBottom: '1px solid var(--color-border)', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, padding: '14px 18px', borderBottom: '1px solid var(--color-border)', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', gap: 10, flex: 1, flexWrap: 'wrap' }}>
-            <div style={{ maxWidth: 240, flex: 1, minWidth: 170 }}>
-              <Input placeholder="🔍  Search loads…" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} />
+            <div style={{ maxWidth: 250, flex: 1, minWidth: 170 }}>
+              <Input icon="search" placeholder="Search loads…" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} />
             </div>
-            <div style={{ width: 160 }}>
+            <div style={{ width: 165 }}>
               <Select value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }}>
                 {STATUS_FILTERS.map((s) => <option key={s} value={s}>{s ? STATUS_STYLE[s].label : 'All statuses'}</option>)}
               </Select>
             </div>
-          </div>
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            <Button onClick={openNew}>+ New Load</Button>
           </div>
         </div>
 
@@ -349,20 +340,22 @@ export default function LoadsPage() {
             </Select>
           </div>
           {hasFilters && (
-            <button onClick={clearFilters} style={{ padding: '9px 14px', borderRadius: 8, border: '1.5px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-muted)', cursor: 'pointer', fontWeight: 600, fontSize: 13, fontFamily: 'inherit' }}>✕ Clear</button>
+            <button onClick={clearFilters} className="df-chip-btn" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 13px', borderRadius: 10, border: '1px solid var(--color-border-strong)', background: 'var(--color-bg)', color: 'var(--color-muted)', cursor: 'pointer', fontWeight: 600, fontSize: 13, fontFamily: 'inherit' }}>
+              <Icon name="close" size={13} /> Clear
+            </button>
           )}
         </div>
 
         {isLoading ? <Spinner /> : !data?.loads.length ? (
-          <EmptyState icon="🚚" title="No loads yet"
+          <EmptyState icon="truck" title="No loads yet"
             description={status || search ? 'Try adjusting your filters.' : 'Add your first shipment to start tracking.'}
-            action={<Button onClick={openNew}>+ New Load</Button>} />
+            action={<Button icon="plus" onClick={openNew}>New Load</Button>} />
         ) : (
           <>
             <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-              <table style={{ width: '100%', minWidth: 980, borderCollapse: 'collapse' }}>
+              <table className="df-table" style={{ minWidth: 1020 }}>
                 <thead>
-                  <tr style={{ background: 'var(--color-surface)' }}>
+                  <tr>
                     <th style={th}>Load</th>
                     <th style={th}>Client</th>
                     <th style={th}>Route</th>
@@ -379,7 +372,7 @@ export default function LoadsPage() {
                 <tbody>
                   {data.loads.map((l: Load) => (
                     <tr key={l.id} style={{ borderBottom: '1px solid var(--color-border)', opacity: busyId === l.id ? 0.5 : 1 }}>
-                      <td style={{ ...td, fontWeight: 700, color: '#2563eb', cursor: 'pointer' }} onClick={() => openEdit(l)}>{l.loadNumber}</td>
+                      <td style={{ ...td, fontWeight: 650, color: 'var(--color-primary)', cursor: 'pointer' }} onClick={() => openEdit(l)}>{l.loadNumber}</td>
                       <td style={td}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           <Avatar name={l.client?.companyName || '?'} size={26} />
@@ -390,31 +383,39 @@ export default function LoadsPage() {
                       <td style={{ ...td, color: 'var(--color-muted)' }}>{fmtDateTime(l.pickupAt)}</td>
                       <td style={{ ...td, color: 'var(--color-muted)' }}>{fmtDateTime(l.deliveryAt)}</td>
                       <td style={{ ...td, textAlign: 'right', color: 'var(--color-muted)' }}>{l.miles ? Number(l.miles) : '—'}</td>
-                      <td style={{ ...td, textAlign: 'right', fontWeight: 800 }}>{fmt(l.rate)}</td>
-                      <td style={{ ...td, textAlign: 'right', color: 'var(--color-muted)' }}>{perMile(l)}</td>
+                      <td className="df-num" style={{ ...td, textAlign: 'right', fontWeight: 700 }}>{fmt(l.rate)}</td>
+                      <td className="df-num" style={{ ...td, textAlign: 'right', color: 'var(--color-muted)' }}>{perMile(l)}</td>
                       {/* Status inline */}
-                      <td style={{ padding: '10px 16px' }}>
+                      <td style={{ padding: '9px 16px' }}>
                         <select value={l.status} disabled={busyId === l.id} onChange={(e) => quickUpdate(l.id, { status: e.target.value })}
-                          style={{ padding: '5px 8px', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer', outline: 'none',
-                            border: 'none', color: STATUS_STYLE[l.status].c, background: STATUS_STYLE[l.status].bg, fontFamily: 'inherit' }}>
+                          style={{ padding: '5px 9px', borderRadius: 999, fontSize: 12, fontWeight: 650, cursor: 'pointer', outline: 'none',
+                            color: STATUS_STYLE[l.status].c, background: STATUS_STYLE[l.status].bg,
+                            border: `1px solid ${STATUS_STYLE[l.status].line}`, fontFamily: 'inherit', appearance: 'none', textAlign: 'center' }}>
                           {ALL_STATUSES.map((s) => <option key={s} value={s} style={{ background: 'var(--color-bg)', color: 'var(--color-text)' }}>{STATUS_STYLE[s].label}</option>)}
                         </select>
                       </td>
                       {/* Payment toggle */}
-                      <td style={{ padding: '10px 16px' }}>
+                      <td style={{ padding: '9px 16px' }}>
                         <button disabled={busyId === l.id}
                           onClick={() => quickUpdate(l.id, { paymentStatus: l.paymentStatus === 'PAID' ? 'UNPAID' : 'PAID' })}
                           title="Toggle paid / unpaid"
-                          style={{ padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 700, cursor: 'pointer', border: 'none', fontFamily: 'inherit',
-                            color: l.paymentStatus === 'PAID' ? '#15803d' : '#b91c1c', background: l.paymentStatus === 'PAID' ? '#dcfce7' : '#fee2e2' }}>
-                          {l.paymentStatus === 'PAID' ? '✓ Paid' : 'Unpaid'}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 11px', borderRadius: 999, fontSize: 12, fontWeight: 650, cursor: 'pointer', fontFamily: 'inherit',
+                            color: l.paymentStatus === 'PAID' ? 'var(--color-success)' : 'var(--color-danger)',
+                            background: l.paymentStatus === 'PAID' ? 'var(--color-success-soft)' : 'var(--color-danger-soft)',
+                            border: `1px solid ${l.paymentStatus === 'PAID' ? 'var(--color-success-line)' : 'var(--color-danger-line)'}` }}>
+                          {l.paymentStatus === 'PAID' && <Icon name="check" size={12} />}
+                          {l.paymentStatus === 'PAID' ? 'Paid' : 'Unpaid'}
                         </button>
                       </td>
-                      <td style={{ padding: '10px 16px', textAlign: 'center', whiteSpace: 'nowrap' }}>
-                        <button title="Edit" onClick={() => openEdit(l)} disabled={busyId === l.id}
-                          style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', borderRadius: 8, padding: '5px 9px', cursor: 'pointer', fontSize: 14, marginRight: 6 }}>✏️</button>
-                        <button title="Delete" onClick={() => remove(l)} disabled={busyId === l.id}
-                          style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', borderRadius: 8, padding: '5px 9px', cursor: 'pointer', fontSize: 14 }}>🗑️</button>
+                      <td style={{ padding: '8px 16px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                        <div style={{ display: 'inline-flex', gap: 6 }}>
+                          <button title="Edit" onClick={() => openEdit(l)} disabled={busyId === l.id} className="df-icon-btn" style={{ padding: 7 }}>
+                            <Icon name="edit" size={15} />
+                          </button>
+                          <button title="Delete" onClick={() => remove(l)} disabled={busyId === l.id} className="df-icon-btn is-danger" style={{ padding: 7 }}>
+                            <Icon name="trash" size={15} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -426,13 +427,14 @@ export default function LoadsPage() {
             </div>
           </>
         )}
-      </div>
+      </Card>
 
       {/* Add / Edit modal */}
       <Modal open={modal} onClose={() => setModal(false)} title={editing ? `Edit ${editing.loadNumber}` : 'New Load'} width={680}>
         {!editing && prefilled.size > 0 && (
-          <div style={{ background: '#dbeafe', color: '#1d4ed8', padding: '10px 14px', borderRadius: 8, fontSize: 13, marginBottom: 16, lineHeight: 1.5 }}>
-            📋 {prefilled.size} field{prefilled.size !== 1 ? 's' : ''} filled in from your pasted text — check them before saving.
+          <div style={{ display: 'flex', alignItems: 'center', gap: 9, background: 'var(--color-info-soft)', border: '1px solid var(--color-info-line)', color: 'var(--color-info)', padding: '10px 14px', borderRadius: 10, fontSize: 13, marginBottom: 16, lineHeight: 1.5 }}>
+            <Icon name="clipboard" size={16} />
+            <span>{prefilled.size} field{prefilled.size !== 1 ? 's' : ''} filled in from your pasted text — check them before saving.</span>
           </div>
         )}
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16 }}>
@@ -510,15 +512,16 @@ export default function LoadsPage() {
         {parsed && (
           <div style={{ marginTop: 16 }}>
             {parsed.matched.length === 0 ? (
-              <div style={{ background: '#fee2e2', color: '#b91c1c', padding: '10px 14px', borderRadius: 8, fontSize: 13 }}>
-                ⚠️ Nothing recognisable in that text. Try including labels like "Rate:", "Pickup:" or a lane like "Chicago, IL → Gary, IN".
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9, background: 'var(--color-danger-soft)', border: '1px solid var(--color-danger-line)', color: 'var(--color-danger)', padding: '11px 14px', borderRadius: 10, fontSize: 13, lineHeight: 1.55 }}>
+                <Icon name="alert" size={16} style={{ marginTop: 2 }} />
+                <span>Nothing recognisable in that text. Try including labels like "Rate:", "Pickup:" or a lane like "Chicago, IL → Gary, IN".</span>
               </div>
             ) : (
               <>
                 <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-text)', marginBottom: 8 }}>
                   Found {parsed.matched.length} field{parsed.matched.length !== 1 ? 's' : ''}:
                 </div>
-                <div style={{ border: '1.5px solid var(--color-border)', borderRadius: 10, overflow: 'hidden' }}>
+                <div style={{ border: '1px solid var(--color-border)', borderRadius: 10, overflow: 'hidden' }}>
                   {Object.entries(parsed.fields).map(([k, v]) => (
                     <div key={k} style={{ display: 'flex', gap: 12, padding: '8px 14px', borderBottom: '1px solid var(--color-border)', fontSize: 13 }}>
                       <span style={{ width: 130, flexShrink: 0, color: 'var(--color-muted)', fontWeight: 600 }}>{PASTE_LABELS[k] ?? k}</span>
@@ -557,19 +560,23 @@ export default function LoadsPage() {
           Upload a CSV to add many loads at once. Clients are matched by name — any that don't exist yet are created automatically.
           Required columns: <strong>client</strong> and <strong>rate</strong>. Dates like <code>2026-07-15 09:00</code>.
         </p>
-        <button onClick={downloadTemplate} style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', borderRadius: 8, padding: '8px 14px', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--color-text)', fontFamily: 'inherit', marginBottom: 16 }}>
-          ⬇️ Download CSV template
-        </button>
+        <Button variant="secondary" size="sm" icon="download" onClick={downloadTemplate} style={{ marginBottom: 16 }}>
+          Download CSV template
+        </Button>
 
         <input type="file" accept=".csv,text/csv" onChange={(e) => onCsvFile(e.target.files?.[0])}
-          style={{ display: 'block', width: '100%', padding: '10px', border: '1.5px dashed var(--color-border)', borderRadius: 10, background: 'var(--color-surface)', color: 'var(--color-text)', fontSize: 13, marginBottom: 14, boxSizing: 'border-box' }} />
+          style={{ display: 'block', width: '100%', padding: '12px', border: '1.5px dashed var(--color-border-strong)', borderRadius: 12, background: 'var(--color-surface)', color: 'var(--color-muted)', fontSize: 13, marginBottom: 14, boxSizing: 'border-box', cursor: 'pointer' }} />
 
-        {importErr && <div style={{ background: '#fee2e2', color: '#b91c1c', padding: '10px 14px', borderRadius: 8, fontSize: 13, marginBottom: 14 }}>⚠️ {importErr}</div>}
+        {importErr && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--color-danger-soft)', border: '1px solid var(--color-danger-line)', color: 'var(--color-danger)', padding: '10px 14px', borderRadius: 10, fontSize: 13, marginBottom: 14 }}>
+            <Icon name="alert" size={16} /> {importErr}
+          </div>
+        )}
 
         {importRows.length > 0 && (
           <div style={{ marginBottom: 14 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-text)', marginBottom: 8 }}>{importRows.length} rows found — preview:</div>
-            <div style={{ overflowX: 'auto', border: '1.5px solid var(--color-border)', borderRadius: 10 }}>
+            <div style={{ overflowX: 'auto', border: '1px solid var(--color-border)', borderRadius: 10 }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                 <thead>
                   <tr style={{ background: 'var(--color-surface)' }}>
