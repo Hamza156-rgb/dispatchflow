@@ -80,6 +80,7 @@ app.get('/api/health', (req, res) => {
 // Which optional features this deployment exposes. Read before login so the
 // nav can be built without flashing a page the user will never reach.
 app.get('/api/config', (req, res) => {
+  res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
   res.json({
     loadBoard: {
       enabled: isLoadBoardEnabled(),
@@ -92,6 +93,7 @@ app.get('/api/config', (req, res) => {
 // Public pricing catalog used by landing/register and admin plan management.
 app.get('/api/plans', async (_req, res, next) => {
   try {
+    res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
     const plans = await prisma.pricingPlan.findMany({ where: { active: true }, orderBy: [{ sortOrder: 'asc' }, { price: 'asc' }] });
     res.json({ plans });
   } catch (err) { next(err); }

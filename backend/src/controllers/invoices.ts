@@ -1,9 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
-import { PrismaClient, InvoiceStatus } from '@prisma/client';
+import { InvoiceStatus } from '@prisma/client';
 import PDFDocument from 'pdfkit';
 import nodemailer from 'nodemailer';
-
-const prisma = new PrismaClient();
+import { prisma } from '../utils/prisma';
 
 export const getInvoices = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -31,15 +30,21 @@ export const getInvoices = async (req: Request, res: Response, next: NextFunctio
       prisma.invoice.count({ where }),
     ]);
 
-    // Auto-update overdue status
+    // Auto-update overdue status in one database call instead of one query per
+    // invoice. We still patch the in-memory response so the caller sees the
+    // updated state immediately.
     const now = new Date();
-    for (const invoice of invoices) {
-      if (invoice.status === 'SENT' && invoice.dueDate < now) {
-        await prisma.invoice.update({
-          where: { id: invoice.id },
-          data: { status: 'OVERDUE' },
-        });
-        invoice.status = 'OVERDUE';
+    const overdueIds = invoices
+      .filter((invoice) => invoice.status === 'SENT' && invoice.dueDate < now)
+      .map((invoice) => invoice.id);
+    if (overdueIds.length) {
+      await prisma.invoice.updateMany({
+        where: { id: { in: overdueIds }, userId, status: 'SENT' },
+        data: { status: 'OVERDUE' },
+      });
+      const overdueSet = new Set(overdueIds);
+      for (const invoice of invoices) {
+        if (overdueSet.has(invoice.id)) invoice.status = 'OVERDUE';
       }
     }
 

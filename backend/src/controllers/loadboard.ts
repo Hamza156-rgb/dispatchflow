@@ -1,5 +1,4 @@
 import { Request, Response, NextFunction } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { encrypt, decrypt, maskAccount } from '../utils/crypto';
 import { parseLoadText } from '../utils/parseLoadText';
 import { logger } from '../utils/logger';
@@ -11,8 +10,7 @@ import {
   LoadBoardResult,
   LoadBoardSearchParams,
 } from '../services/loadboard';
-
-const prisma = new PrismaClient();
+import { prisma } from '../utils/prisma';
 const PROVIDER = 'DAT';
 
 // GET /api/loadboard/status — is this dispatcher connected, and to what?
