@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { PrismaClient } from '@prisma/client';
+import { logger } from '../utils/logger';
 
 const prisma = new PrismaClient();
 
@@ -52,9 +53,22 @@ export const requireSuperAdmin = (req: Request, res: Response, next: NextFunctio
 };
 
 export const errorHandler = (err: any, req: Request, res: Response, next: NextFunction) => {
-  console.error(err);
+  logger.error(`${req.method} ${req.originalUrl} — ${err?.code ?? err?.name ?? 'Error'}: ${err?.message}`, err);
+
   if (err.name === 'ZodError') {
     return res.status(400).json({ error: 'Validation error', details: err.errors });
   }
+
+  // Prisma errors worth answering precisely rather than as a blanket 500.
+  switch (err?.code) {
+    case 'P2002':
+      return res.status(409).json({ error: 'That value is already taken', code: 'P2002' });
+    case 'P2025':
+      return res.status(404).json({ error: 'Not found', code: 'P2025' });
+    case 'P2021': // table missing — a migration hasn't reached this database
+    case 'P2022': // column missing — same cause
+      return res.status(500).json({ error: 'Database is out of date — a migration is missing', code: err.code });
+  }
+
   res.status(500).json({ error: 'Internal server error' });
 };
