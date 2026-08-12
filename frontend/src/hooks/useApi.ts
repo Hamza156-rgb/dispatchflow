@@ -4,13 +4,27 @@ import type { AppConfig, ClientPayload, CreateInvoicePayload, PaymentPayload, Pr
 
 // ─── Query Keys ───────────────────────────────────────────────────────────────
 export const QK = {
+  clientsRoot: ['clients'] as const,
   clients: (params?: any) => ['clients', params],
   client: (id: string) => ['clients', id],
+  invoicesRoot: ['invoices'] as const,
   invoices: (params?: any) => ['invoices', params],
   invoice: (id: string) => ['invoices', id],
+  reportsRoot: ['reports'] as const,
   dashboard: () => ['reports', 'dashboard'],
   reports: (year?: number) => ['reports', year],
+  loadsRoot: ['loads'] as const,
+  loadBoardRoot: ['loadboard'] as const,
+  config: ['config'] as const,
+  teamRoot: ['team'] as const,
+  adminOrganizations: ['admin', 'organizations'] as const,
+  adminPlans: ['admin', 'plans'] as const,
+  publicPlans: ['public', 'plans'] as const,
+  itemSuggestions: (clientId?: string) => ['item-suggestions', clientId],
 };
+
+const invalidate = (qc: ReturnType<typeof useQueryClient>, queryKey: readonly unknown[]) =>
+  qc.invalidateQueries({ queryKey });
 
 // ─── Clients ──────────────────────────────────────────────────────────────────
 export const useClients = (params?: { page?: number; limit?: number; search?: string; sortBy?: string }) =>
@@ -31,7 +45,7 @@ export const useCreateClient = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data: ClientPayload) => clientsApi.create(data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['clients'] }),
+    onSuccess: () => invalidate(qc, QK.clientsRoot),
   });
 };
 
@@ -40,7 +54,7 @@ export const useUpdateClient = () => {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<ClientPayload> }) => clientsApi.update(id, data),
     onSuccess: (_, { id }) => {
-      qc.invalidateQueries({ queryKey: ['clients'] });
+      invalidate(qc, QK.clientsRoot);
       qc.invalidateQueries({ queryKey: QK.client(id) });
     },
   });
@@ -50,7 +64,7 @@ export const useDeleteClient = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => clientsApi.delete(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['clients'] }),
+    onSuccess: () => invalidate(qc, QK.clientsRoot),
   });
 };
 
@@ -58,7 +72,7 @@ export const useBulkCreateClients = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (rows: any[]) => clientsApi.bulkCreate(rows),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['clients'] }),
+    onSuccess: () => invalidate(qc, QK.clientsRoot),
   });
 };
 
@@ -84,8 +98,8 @@ export const useCreateInvoice = () => {
   return useMutation({
     mutationFn: (data: CreateInvoicePayload) => invoicesApi.create(data),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['invoices'] });
-      qc.invalidateQueries({ queryKey: ['reports'] });
+      invalidate(qc, QK.invoicesRoot);
+      invalidate(qc, QK.reportsRoot);
     },
   });
 };
@@ -95,9 +109,9 @@ export const useUpdateInvoice = () => {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: any }) => invoicesApi.update(id, data),
     onSuccess: (_, { id }) => {
-      qc.invalidateQueries({ queryKey: ['invoices'] });
+      invalidate(qc, QK.invoicesRoot);
       qc.invalidateQueries({ queryKey: QK.invoice(id) });
-      qc.invalidateQueries({ queryKey: ['reports'] });
+      invalidate(qc, QK.reportsRoot);
     },
   });
 };
@@ -107,8 +121,8 @@ export const useDeleteInvoice = () => {
   return useMutation({
     mutationFn: (id: string) => invoicesApi.delete(id),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['invoices'] });
-      qc.invalidateQueries({ queryKey: ['reports'] });
+      invalidate(qc, QK.invoicesRoot);
+      invalidate(qc, QK.reportsRoot);
     },
   });
 };
@@ -130,8 +144,8 @@ export const useRecordPayment = () => {
   return useMutation({
     mutationFn: (data: PaymentPayload) => paymentsApi.record(data),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['invoices'] });
-      qc.invalidateQueries({ queryKey: ['reports'] });
+      invalidate(qc, QK.invoicesRoot);
+      invalidate(qc, QK.reportsRoot);
     },
   });
 };
@@ -152,16 +166,16 @@ export const useReports = (year?: number) =>
 
 export const useInsights = () =>
   useQuery({
-    queryKey: ['reports', 'insights'],
+    queryKey: [...QK.reportsRoot, 'insights'],
     queryFn: () => reportsApi.insights(),
     staleTime: 30_000,
   });
 
 export const useItemSuggestions = (clientId?: string) =>
   useQuery({
-    queryKey: ['item-suggestions', clientId],
+    queryKey: QK.itemSuggestions(clientId),
     queryFn: () => invoicesApi.itemSuggestions(clientId),
-    enabled: true,
+    enabled: clientId !== undefined,
   });
 
 // ─── Loads ────────────────────────────────────────────────────────────────────
@@ -176,7 +190,7 @@ export const useCreateLoad = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data: LoadPayload) => loadsApi.create(data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['loads'] }),
+    onSuccess: () => invalidate(qc, QK.loadsRoot),
   });
 };
 
@@ -184,7 +198,7 @@ export const useUpdateLoad = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<LoadPayload> }) => loadsApi.update(id, data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['loads'] }),
+    onSuccess: () => invalidate(qc, QK.loadsRoot),
   });
 };
 
@@ -192,7 +206,7 @@ export const useDeleteLoad = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => loadsApi.delete(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['loads'] }),
+    onSuccess: () => invalidate(qc, QK.loadsRoot),
   });
 };
 
@@ -200,7 +214,7 @@ export const useBulkCreateLoads = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (rows: any[]) => loadsApi.bulkCreate(rows),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['loads'] }),
+    onSuccess: () => invalidate(qc, QK.loadsRoot),
   });
 };
 
@@ -209,7 +223,7 @@ export const useBulkCreateLoads = () => {
 // so fetch once and keep it — the nav reads it on every render.
 export const useAppConfig = () =>
   useQuery<AppConfig>({
-    queryKey: ['config'],
+    queryKey: QK.config,
     queryFn: () => configApi.get(),
     staleTime: Infinity,
     retry: 1,
@@ -217,13 +231,13 @@ export const useAppConfig = () =>
 
 // ─── Load board (DAT) ─────────────────────────────────────────────────────────
 export const useLoadBoardStatus = () =>
-  useQuery<LoadBoardStatus>({ queryKey: ['loadboard', 'status'], queryFn: () => loadBoardApi.status() });
+  useQuery<LoadBoardStatus>({ queryKey: [...QK.loadBoardRoot, 'status'], queryFn: () => loadBoardApi.status() });
 
 export const useConnectLoadBoard = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data: { username: string; password?: string; label?: string }) => loadBoardApi.connect(data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['loadboard', 'status'] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: [...QK.loadBoardRoot, 'status'] }),
   });
 };
 
@@ -231,7 +245,7 @@ export const useDisconnectLoadBoard = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: () => loadBoardApi.disconnect(),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['loadboard'] }),
+    onSuccess: () => invalidate(qc, QK.loadBoardRoot),
   });
 };
 
@@ -247,9 +261,9 @@ export const useImportLoadBoardResults = () => {
   return useMutation({
     mutationFn: (results: LoadBoardResult[]) => loadBoardApi.import(results),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['loads'] });
-      qc.invalidateQueries({ queryKey: ['clients'] });
-      qc.invalidateQueries({ queryKey: ['reports'] });
+      invalidate(qc, QK.loadsRoot);
+      invalidate(qc, QK.clientsRoot);
+      invalidate(qc, QK.reportsRoot);
     },
   });
 };
@@ -259,13 +273,13 @@ export const useParseLoadText = () =>
 
 // ─── Team ─────────────────────────────────────────────────────────────────────
 export const useTeam = () =>
-  useQuery({ queryKey: ['team'], queryFn: () => teamApi.list(), staleTime: 60_000 });
+  useQuery({ queryKey: QK.teamRoot, queryFn: () => teamApi.list(), staleTime: 60_000 });
 
 export const useAddMember = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data: any) => teamApi.add(data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['team'] }),
+    onSuccess: () => invalidate(qc, QK.teamRoot),
   });
 };
 
@@ -273,25 +287,25 @@ export const useRemoveMember = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => teamApi.remove(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['team'] }),
+    onSuccess: () => invalidate(qc, QK.teamRoot),
   });
 };
 
 // ─── Super Admin ──────────────────────────────────────────────────────────────
 export const useOrganizations = () =>
-  useQuery({ queryKey: ['admin', 'organizations'], queryFn: () => adminApi.organizations(), staleTime: 60_000 });
+  useQuery({ queryKey: QK.adminOrganizations, queryFn: () => adminApi.organizations(), staleTime: 60_000 });
 
 export const useAdminPlans = () =>
-  useQuery<{ plans: PricingPlan[] }>({ queryKey: ['admin', 'plans'], queryFn: () => plansApi.adminList(), staleTime: 60_000 });
+  useQuery<{ plans: PricingPlan[] }>({ queryKey: QK.adminPlans, queryFn: () => plansApi.adminList(), staleTime: 60_000 });
 
 export const usePublicPlans = () =>
-  useQuery<{ plans: PricingPlan[] }>({ queryKey: ['public', 'plans'], queryFn: () => plansApi.publicList(), staleTime: Infinity });
+  useQuery<{ plans: PricingPlan[] }>({ queryKey: QK.publicPlans, queryFn: () => plansApi.publicList(), staleTime: Infinity });
 
 export const useCreatePlan = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data: Partial<PricingPlan>) => adminApi.plans.create(data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'plans'] }),
+    onSuccess: () => invalidate(qc, QK.adminPlans),
   });
 };
 
@@ -299,7 +313,7 @@ export const useUpdatePlan = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<PricingPlan> }) => adminApi.plans.update(id, data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'plans'] }),
+    onSuccess: () => invalidate(qc, QK.adminPlans),
   });
 };
 
@@ -307,7 +321,7 @@ export const useDeletePlan = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => adminApi.plans.remove(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'plans'] }),
+    onSuccess: () => invalidate(qc, QK.adminPlans),
   });
 };
 
@@ -315,7 +329,7 @@ export const useUpdateOrganization = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: any }) => adminApi.updateOrg(id, data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'organizations'] }),
+    onSuccess: () => invalidate(qc, QK.adminOrganizations),
   });
 };
 
