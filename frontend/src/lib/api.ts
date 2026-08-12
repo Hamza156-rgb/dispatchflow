@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { AUTH_EXPIRED_EVENT, clearAuthStorage } from '../store/authStore';
+import { AUTH_EXPIRED_EVENT, useAuthStore } from '../store/authStore';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
@@ -7,19 +7,24 @@ const api = axios.create({
   timeout: 15000,
 });
 
-// Attach JWT token to every request
+// Attach JWT token to every request. The store is the source of truth — the
+// router reads the same value, so the two can never disagree about whether
+// we're signed in. `df_token` stays as a fallback for sessions saved before
+// the store held the token.
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('df_token');
+  const token = useAuthStore.getState().token || localStorage.getItem('df_token');
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 
-// Handle 401 — redirect to login
+// Handle 401 — sign out fully, then redirect to login. A partial sign-out would
+// leave the route guards thinking we're authenticated and every page would
+// re-fire its queries into another 401.
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      clearAuthStorage();
+      useAuthStore.getState().logout();
       window.dispatchEvent(new Event(AUTH_EXPIRED_EVENT));
     }
     return Promise.reject(error);

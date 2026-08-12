@@ -31,8 +31,10 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
-  const { token } = useAuthStore();
-  if (token) return <Navigate to="/dashboard" replace />;
+  const { token, user } = useAuthStore();
+  // Super admins have no workspace of their own — land them on the console
+  // instead of bouncing them through the dashboard.
+  if (token) return <Navigate to={user?.isSuperAdmin ? '/admin/overview' : '/dashboard'} replace />;
   return <>{children}</>;
 }
 

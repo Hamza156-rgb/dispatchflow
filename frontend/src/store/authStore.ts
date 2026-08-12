@@ -4,9 +4,12 @@ import type { User } from '../types';
 
 export const AUTH_EXPIRED_EVENT = 'df:auth-expired';
 
+/** Every place the session is kept. Clearing one but not the others leaves the
+ *  app "logged in" to the router while sending unauthenticated requests. */
 export const clearAuthStorage = () => {
   localStorage.removeItem('df_token');
   localStorage.removeItem('df_user');
+  localStorage.removeItem('df_auth'); // persisted store (see `name` below)
 };
 
 interface AuthState {
